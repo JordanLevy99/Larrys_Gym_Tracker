@@ -1,14 +1,28 @@
 import discord
 from discord.ext import commands
+import sqlite3
+from datetime import datetime
+import os
+from dotenv import load_dotenv
 
+# Load the .env file
+load_dotenv()
 
-client_secret = 'iZ_Zpb3x6wAZSL0PwgHB-ibSIX-SBRlh'
-bot_token = 'MTE4NDE2ODY4OTI1MjE5MjMwNg.Gi42VX.jgLbsUxS2DTr1p73R6WkuYBHjXmokOZz2ebagc'
+# Get the bot token
+bot_token = os.getenv('BOT_TOKEN')
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+
+# Connect to the SQLite database
+conn = sqlite3.connect('voice_log.db')
+c = conn.cursor()
+ 
+# Create table if it doesn't exist
+c.execute('''CREATE TABLE IF NOT EXISTS voice_log
+             (name text, id text, join_time text)''')
 
 @bot.event
 async def on_ready():
@@ -22,13 +36,19 @@ async def ping(ctx):
 async def hello(ctx):
     await ctx.send('Hello, world!')
 
-
 @bot.event
 async def on_voice_state_update(member, before, after):
     if after.channel is not None:
         if after.channel.name == 'General':
-            channel = discord.utils.get(member.guild.text_channels, name='general')
-            if channel is not None:
-                await channel.send(f'{member.name} joined the voice channel!')
+            # Get current time
+            join_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Insert values into the database
+            c.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?)", (member.name, member.id, join_time, after.channel.name))
+            # Commit the changes
+            conn.commit()
+            print(f'Logged user {member.name} at {join_time}...')
 
 bot.run(bot_token)
+
+# Close the connection to the database
+conn.close()

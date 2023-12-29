@@ -22,7 +22,7 @@ c = conn.cursor()
  
 # Create table if it doesn't exist
 c.execute('''CREATE TABLE IF NOT EXISTS voice_log
-             (name text, id text, join_time text)''')
+             (name text, id text, join_time text, channel text)''')
 
 @bot.event
 async def on_ready():

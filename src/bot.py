@@ -4,6 +4,7 @@ import sqlite3
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import pandas as pd
 
 # Load the .env file
 load_dotenv()
@@ -47,6 +48,7 @@ async def on_voice_state_update(member, before, after):
             # Commit the changes
             conn.commit()
             print(f'Logged user {member.name} at {join_time}...')
+            print(pd.read_sql_query("SELECT * FROM voice_log", conn))
 
 bot.run(bot_token)
 

@@ -116,45 +116,17 @@ def upload():
         file.Upload()
         print(f'Uploaded {csv_file} to Google Drive!')
 
-@bot.event()
+@bot.event
 async def on_voice_state_update(member, before, after):
     if after.channel is not None:
         if after.channel.name == 'General':
-            # Get current time in UTC
             utc_now = datetime.now(pytz.utc)
-            
-            # Convert to Pacific time
             pacific_tz = pytz.timezone('US/Pacific')
             pacific_time = utc_now.astimezone(pacific_tz)
-            
-            # Format the time
             join_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S")
-            
-            # Insert values into the database
             c.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?)", (member.name, member.id, join_time, after.channel.name))
-            # Commit the changes
             conn.commit()
             print(f'Logged user {member.name} at {join_time}...')
-            print(pd.read_sql_query("SELECT * FROM voice_log", conn))
-            upload()
-
-    if before.channel is not None:
-        if before.channel.name == 'General':
-            # Get current time in UTC
-            utc_now = datetime.now(pytz.utc)
-            
-            # Convert to Pacific time
-            pacific_tz = pytz.timezone('US/Pacific')
-            pacific_time = utc_now.astimezone(pacific_tz)
-            
-            # Format the time
-            leave_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S")
-            
-            # Insert values into the database
-            c.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?)", (member.name, member.id, leave_time, before.channel.name))
-            # Commit the changes
-            conn.commit()
-            print(f'Logged user {member.name} leaving at {leave_time}...')
             print(pd.read_sql_query("SELECT * FROM voice_log", conn))
             upload()
             

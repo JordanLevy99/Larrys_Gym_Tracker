@@ -9,24 +9,52 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import pytz
 
-# Load the .env file
-load_dotenv()
 
-# Get the bot token
-bot_token = os.getenv('BOT_TOKEN')
+if __name__ == '__main__':
+    # Load the .env file
+    load_dotenv()
 
-intents = discord.Intents.default()
-intents.message_content = True
+    # Get the bot token
+    bot_token = os.getenv('BOT_TOKEN')
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+    intents = discord.Intents.default()
+    intents.message_content = True
 
-# Connect to the SQLite database
-conn = sqlite3.connect('voice_log.db')
-c = conn.cursor()
- 
-# Create table if it doesn't exist
-c.execute('''CREATE TABLE IF NOT EXISTS voice_log
-             (name text, id text, join_time text, channel text)''')
+    bot = commands.Bot(command_prefix='!', intents=intents)
+
+    # Connect to the SQLite database
+    conn = sqlite3.connect('voice_log.db')
+    c = conn.cursor()
+    
+    # Create table if it doesn't exist
+    c.execute('''CREATE TABLE IF NOT EXISTS voice_log
+                (name text, id text, join_time text, channel text)''')
+
+    # Authenticate with Google Drive
+    gauth = GoogleAuth()
+    # gauth.LocalWebserverAuth()
+
+    # Create a Google Drive instance
+    drive = GoogleDrive(gauth)
+
+    # Check if the file exists in Google Drive
+    file_list = drive.ListFile({'q': "title='voice_log.csv'"}).GetList()
+    if file_list:
+        # Download the file
+        file = file_list[0]
+        file.GetContentFile('voice_log.csv')
+        print(file)
+        df = pd.read_csv(file)
+        df.to_sql('voice_log.db', conn, if_exists='append', index=False)
+        print('Downloaded voice_log.csv from Google Drive!')
+    else:
+        print('voice_log.csv does not exist in Google Drive.')
+
+    bot.run(bot_token)
+
+    # Close the connection to the database
+    conn.close()
+
 
 @bot.event
 async def on_ready():
@@ -40,8 +68,7 @@ async def ping(ctx):
 async def hello(ctx):
     await ctx.send('Hello, world!')
 
-@bot.command()
-async def upload(ctx):
+def upload():
     # Query the voice_log table
     df = pd.read_sql_query("SELECT * FROM voice_log", conn)
     
@@ -61,19 +88,17 @@ async def upload(ctx):
     if file_list:
         # Update the existing file
         file = file_list[0]
-        print(file_list)
         file.SetContentFile(csv_file)
         file.Upload()
-        await ctx.send(f'Updated {csv_file} in Google Drive!')
+        print(f'Updated {csv_file} in Google Drive!')
     else:
         # Upload the CSV file to Google Drive
         file = drive.CreateFile({'title': csv_file})
         file.SetContentFile(csv_file)
         file.Upload()
-        await ctx.send(f'Uploaded {csv_file} to Google Drive!')
+        print(f'Uploaded {csv_file} to Google Drive!')
 
-@bot.event
-
+@bot.event()
 async def on_voice_state_update(member, before, after):
     if after.channel is not None:
         if after.channel.name == 'General':
@@ -93,9 +118,27 @@ async def on_voice_state_update(member, before, after):
             conn.commit()
             print(f'Logged user {member.name} at {join_time}...')
             print(pd.read_sql_query("SELECT * FROM voice_log", conn))
+            upload()
 
-bot.run(bot_token)
-
-# Close the connection to the database
-conn.close()
-
+@bot.event
+async def on_voice_state_update(member, before, after):
+    if before.channel is not None:
+        if before.channel.name == 'General':
+            # Get current time in UTC
+            utc_now = datetime.now(pytz.utc)
+            
+            # Convert to Pacific time
+            pacific_tz = pytz.timezone('US/Pacific')
+            pacific_time = utc_now.astimezone(pacific_tz)
+            
+            # Format the time
+            leave_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Insert values into the database
+            c.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?)", (member.name, member.id, leave_time, before.channel.name))
+            # Commit the changes
+            conn.commit()
+            print(f'Logged user {member.name} leaving at {leave_time}...')
+            print(pd.read_sql_query("SELECT * FROM voice_log", conn))
+            upload()
+            

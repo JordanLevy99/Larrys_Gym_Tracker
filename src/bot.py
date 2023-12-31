@@ -8,6 +8,8 @@ import pandas as pd
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import pytz
+import pandas as pd
+import requests
 
 
 if __name__ == '__main__':
@@ -39,12 +41,28 @@ if __name__ == '__main__':
 
     # Check if the file exists in Google Drive
     file_list = drive.ListFile({'q': "title='voice_log.csv'"}).GetList()
+    print(file_list)
     if file_list:
         # Download the file
         file = file_list[0]
         file.GetContentFile('voice_log.csv')
-        print(file)
-        df = pd.read_csv(file)
+        # print(file)
+
+        # URL of the file in Google Drive
+        file_id = file['id']
+
+        # Extract the file ID from the URL
+
+        # Construct the download link
+        download_link = f'https://drive.google.com/uc?id={file_id}'
+        print(download_link)
+        requests.get(download_link)
+        # Read the file into a pandas DataFrame
+        df = pd.read_csv('voice_log.csv')
+
+        # Print the DataFrame
+        print(df)
+        # df = pd.read_csv(file)
         df.to_sql('voice_log.db', conn, if_exists='append', index=False)
         print('Downloaded voice_log.csv from Google Drive!')
     else:
@@ -120,8 +138,6 @@ async def on_voice_state_update(member, before, after):
             print(pd.read_sql_query("SELECT * FROM voice_log", conn))
             upload()
 
-@bot.event
-async def on_voice_state_update(member, before, after):
     if before.channel is not None:
         if before.channel.name == 'General':
             # Get current time in UTC

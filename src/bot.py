@@ -14,13 +14,17 @@ from discord import Permissions
 from datetime import timedelta
 
 # Constants
-db_file = 'larrys_database.db'
+db_file = 'dinksters_database.db'
 text_channel = 'larrys-gym-planner-name-subject-to-change'
 current_text_channel = lambda member: discord.utils.get(member.guild.text_channels, name=text_channel)
 voice_channel = 'Larry\'s Gym'
+verbose = False
+
+# Walking constants
+global start_hour, end_hour
+
 start_hour = 7
 end_hour =  9
-verbose = False
 length_of_walk_in_minutes = 45
 max_on_time_points = 50
 max_duration_points = 50
@@ -28,12 +32,14 @@ max_duration_points = 50
 # Load the .env file
 load_dotenv()
 
-permissions = Permissions(0x00000400 | 0x00000800)
+# permissions = Permissions(0x00000400 | 0x00000800 | 0x00800000)
 # Get the bot token
 bot_token = os.getenv('BOT_TOKEN')
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
+
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -87,6 +93,12 @@ def download():
 
 download()
 
+@bot.command()
+async def start_time(ctx, start_time: int):
+    global start_hour, end_hour
+    start_hour = start_time
+    end_hour = start_time + 2
+
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
@@ -121,6 +133,29 @@ async def add_points(text_channel):
     await calculate_points(text_channel, users_df, users_durations)
     print(pd.read_sql_query("""SELECT * FROM points""", conn).tail())
 
+@bot.command()
+async def leaderboard(ctx):
+    print(ctx.guild.roles)
+    role = discord.utils.get(ctx.guild.roles, name='Walker')
+    if role:
+        for member in role.members:
+            print(member.name)
+    # Select all rows from the points table
+    leaderboard_series = pd.read_sql_query(f"""SELECT name, SUM(points_awarded) as total_points 
+                                       FROM points 
+                                       WHERE id IN ({','.join([f'"{member.id}"' for member in role.members])}) 
+                                       GROUP BY id""", conn)
+    print(leaderboard_series)
+    if leaderboard_series.empty:
+        print(role.members)
+        # Find all users in the text_channel and output 0 for their points
+        leaderboard_series = pd.Series(dict(zip([member.name for member in role.members], [0] * len(role.members))))
+        leaderboard_series.name = 'Total Points'
+        # leaderboard_df = pd.DataFrame(data=dict(zip([member.name for member in role.members], [0] * len(role.members))))
+
+    # Send the leaderboard as a message in the text_channel
+    # await ctx.send(f"Leaderboard:\n{leaderboard_df.to_string(index=False)}")
+    await ctx.send(f"Leaderboard:\n{leaderboard_series.to_string(index=True)}")
 
 async def calculate_points(text_channel, users_df, users_durations):
     walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()

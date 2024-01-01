@@ -43,17 +43,19 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# Connect to the SQLite database
-conn = sqlite3.connect(db_file)
-c = conn.cursor()
+def connect_to_database():
+    global conn, c
+    # Connect to the SQLite database
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
 
-# Create table if it doesn't exist
-c.execute('''CREATE TABLE IF NOT EXISTS voice_log
-            (name text, id text, time datetime, channel text, user_joined boolean)''')
+    # Create table if it doesn't exist
+    c.execute('''CREATE TABLE IF NOT EXISTS voice_log
+                (name text, id text, time datetime, channel text, user_joined boolean)''')
 
-# Create table if it doesn't exist
-c.execute('''CREATE TABLE IF NOT EXISTS points
-            (name text, id text, points_awarded float, time datetime, type text)''')
+    # Create table if it doesn't exist
+    c.execute('''CREATE TABLE IF NOT EXISTS points
+                (name text, id text, points_awarded float, time datetime, type text)''')
 
 def download():
     global conn, c, drive
@@ -89,8 +91,8 @@ def download():
         print(f'Downloaded {db_file} from Google Drive!')
     else:
         print(f'{db_file} does not exist in Google Drive.')
-    # return conn, c, drive
 
+connect_to_database()
 download()
 
 @bot.command()
@@ -98,18 +100,21 @@ async def start_time(ctx, start_time: int):
     global start_hour, end_hour
     start_hour = start_time
     end_hour = start_time + 2
+    await ctx.send(f'Walk start time set to {start_hour}:00 Pacific time for today...')
+
 
 @bot.command()
 async def database(ctx, new_db_file: str):
     global db_file
     db_file = new_db_file
-    ctx.send(f'Database file set to {db_file}')
-    
+    await ctx.send(f'Database file set to {db_file}')
+    connect_to_database()
+
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
-async def upload(channel):
+def upload():
     # Query the voice_log table    
     # Check if the file already exists in Google Drive
     file_list = drive.ListFile({'q': f"title='{db_file}'"}).GetList()
@@ -143,9 +148,6 @@ async def add_points(text_channel):
 async def leaderboard(ctx):
     print(ctx.guild.roles)
     role = discord.utils.get(ctx.guild.roles, name='Walker')
-    if role:
-        for member in role.members:
-            print(member.name)
     # Select all rows from the points table
     leaderboard_series = pd.read_sql_query(f"""SELECT name, SUM(points_awarded) as total_points 
                                        FROM points 
@@ -153,14 +155,11 @@ async def leaderboard(ctx):
                                        GROUP BY id""", conn)
     print(leaderboard_series)
     if leaderboard_series.empty:
-        print(role.members)
         # Find all users in the text_channel and output 0 for their points
         leaderboard_series = pd.Series(dict(zip([member.name for member in role.members], [0] * len(role.members))))
         leaderboard_series.name = 'Total Points'
-        # leaderboard_df = pd.DataFrame(data=dict(zip([member.name for member in role.members], [0] * len(role.members))))
 
     # Send the leaderboard as a message in the text_channel
-    # await ctx.send(f"Leaderboard:\n{leaderboard_df.to_string(index=False)}")
     await ctx.send(f"Leaderboard:\n{leaderboard_series.to_string(index=True)}")
 
 async def calculate_points(text_channel, users_df, users_durations):
@@ -199,7 +198,6 @@ async def on_voice_state_update(member, before, after):
             # Get current time in UTC
             join_time = _get_current_time()
             append_to_database(member, after, join_time, joined=True)
-            
             # Send a message in the general text channel
             await log_and_upload(member, join_time, True)
 
@@ -214,11 +212,10 @@ async def log_and_upload(member, event_time, joining):
     logging_channel = current_text_channel(member)
     if verbose:
         await log_data(logging_channel, member, event_time, joining)
-    await upload(logging_channel)
+    upload(logging_channel)
 
 async def log_data(channel, member, event_time, joining):
     leaving_str = "leaving " if not joining else ""
-    # await channel.send(f'Logged user {member.name} {leaving_str}at {event_time}...')
     print(f'Logged user {member.name} {leaving_str}at {event_time}...')
     print(pd.read_sql_query("SELECT * FROM voice_log", conn).tail())
 
@@ -238,21 +235,3 @@ def _get_current_time():
     return join_time
 
 bot.run(bot_token)
-
-# # either 5:55am pacific or 6:55am pacific in UTC standard time, depending on daylight savings time
-# schedule.every().day.at("13:55").do(download)
-# schedule.every().day.at("14:55").do(download)
-
-
-# schedule.every().day.at("00:11").do(download)
-
-# while True:
-#     schedule.run_pending()
-    # time.sleep(1)
-
-# # Close the connection to the database
-
-# bot.run(bot_token)
-
-# # Close the connection to the database
-# conn.close()

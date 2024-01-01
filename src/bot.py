@@ -212,7 +212,7 @@ async def log_and_upload(member, event_time, joining):
     logging_channel = current_text_channel(member)
     if verbose:
         await log_data(logging_channel, member, event_time, joining)
-    upload(logging_channel)
+    upload()
 
 async def log_data(channel, member, event_time, joining):
     leaving_str = "leaving " if not joining else ""

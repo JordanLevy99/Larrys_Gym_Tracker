@@ -99,6 +99,12 @@ async def start_time(ctx, start_time: int):
     start_hour = start_time
     end_hour = start_time + 2
 
+@bot.command()
+async def database(ctx, new_db_file: str):
+    global db_file
+    db_file = new_db_file
+    ctx.send(f'Database file set to {db_file}')
+    
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')

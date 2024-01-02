@@ -15,7 +15,7 @@ from datetime import timedelta
 from tabulate import tabulate
 
 # Constants
-db_file = 'larrys_database.db'
+db_file = 'dinksters_database.db'
 text_channel = 'Larry\'s Gym Tracker'
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
@@ -137,7 +137,7 @@ def upload():
 async def end_walk(ctx):
     global walk_ended
     if not walk_ended:
-        await ctx.send(f'Walk ended at {datetime.now()}! Calculating points...')
+        await ctx.send(f'Walk ended at {_get_current_time()}! Calculating points...')
         await update_points(ctx)
         walk_ended = True
 
@@ -161,10 +161,12 @@ async def update_points(ctx):
     users_df = pd.read_sql_query("""
                             SELECT * 
                             FROM voice_log""", conn)
+    print('users df at first:\n',users_df)
     users_df['time'] = users_df['time'].astype('datetime64[ns]')
     users_df['day'] = users_df['time'].dt.date
     current_day = users_df['day'].max()
     users_df = users_df.loc[users_df['day'] == current_day]
+    print('users df after filtering:\n',users_df)
     users_durations = users_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
     calculate_points(users_df, users_durations)
     print(pd.read_sql_query("""SELECT * FROM points""", conn).tail())
@@ -230,6 +232,7 @@ def _process_query(query):
         return 'yearly', f"""AND day >= "{datetime.now().date().replace(month=1, day=1)}" """
 
 def calculate_points(users_df, users_durations):
+    print(users_durations)
     walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
     duration_points = (users_durations.dt.total_seconds() / walk_time_in_seconds) * 50
     duration_points.loc[duration_points>max_duration_points] = max_duration_points

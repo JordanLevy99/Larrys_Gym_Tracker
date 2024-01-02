@@ -15,11 +15,11 @@ from datetime import timedelta
 from tabulate import tabulate
 
 # Constants
-db_file = 'dinksters_database.db'
+db_file = 'larrys_database.db'
 text_channel = 'Larry\'s Gym Tracker'
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
-verbose = False
+verbose = True
 
 # Walking constants
 global start_hour, end_hour
@@ -29,6 +29,7 @@ end_hour =  9
 length_of_walk_in_minutes = 45
 max_on_time_points = 50
 max_duration_points = 50
+walk_ended = False
 
 # Load the .env file
 load_dotenv()
@@ -132,6 +133,14 @@ def upload():
         file.Upload()
         print(f'Uploaded {db_file} to Google Drive!')
 
+@bot.command()
+async def end_walk(ctx):
+    global walk_ended
+    if not walk_ended:
+        await ctx.send(f'Walk ended at {datetime.now()}! Calculating points...')
+        await update_points(ctx)
+        walk_ended = True
+
 
 @bot.command()
 async def drop_points(ctx):
@@ -146,7 +155,7 @@ async def delete_all_points(ctx):
     upload()
     # await ctx.send(f'Dropped points table...')
 
-def update_points():
+async def update_points(ctx):
     # Groupby name and id, extract day from date and groupby day, subtract max and min time to get duration
     # Divide duration by walk duration to get points
     users_df = pd.read_sql_query("""
@@ -159,22 +168,8 @@ def update_points():
     users_durations = users_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
     calculate_points(users_df, users_durations)
     print(pd.read_sql_query("""SELECT * FROM points""", conn).tail())
-
-async def add_points(text_channel):
-    print('Points query results:')
-    users_df = pd.read_sql_query("""
-                            SELECT name, id, time 
-                            FROM voice_log
-                            GROUP BY time, id
-                            ORDER BY time DESC 
-                            LIMIT 2""", conn)
-    users_df['time'] = users_df['time'].astype('datetime64[ns]')
-    users_durations = users_df.groupby('id').apply(lambda user: user['time'].max() - user['time'].min())
-    # print('User Durations: ',users_durations)
-    calculate_points(users_df, users_durations)
-    print(pd.read_sql_query("""SELECT * FROM points""", conn))
-
-
+    await leaderboard(ctx, 'WEEKLY')
+    upload()
 
 @bot.command()
 async def download_db(ctx):
@@ -187,15 +182,19 @@ async def upload_db(ctx):
     # await ctx.send(f'Uploaded {db_file} to Google Drive!')
 
 @bot.command()
-async def leaderboard(ctx, points_type=''):
-    points_type = points_type.replace('_', ' ')
+async def leaderboard(ctx, *args):
+    query = ' '.join(args)
+    if 'ON TIME' in query or 'DURATION' in query:
+        points_type = query
     role = discord.utils.get(ctx.guild.roles, name='Walker')
     # Select all rows from the points table
-    points_type_query = f"""AND type = "{points_type}" """ if points_type else ''
-    leaderboard_query = f"""SELECT name, SUM(points_awarded) as total_points 
+    unit_of_time, time_filter = _process_query(query)
+    
+    points_column = f'{unit_of_time} points' if unit_of_time else 'total_points'
+    leaderboard_query = f"""SELECT name, SUM(points_awarded) as '{points_column}'
                                        FROM points 
                                        WHERE id IN ({','.join([f'"{member.id}"' for member in role.members])}) 
-                                       {points_type_query}
+                                       {time_filter}
                                        GROUP BY id"""
     leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
     print(leaderboard_df)
@@ -206,10 +205,29 @@ async def leaderboard(ctx, points_type=''):
         leaderboard_df = leaderboard_series.to_frame()
 
     # Convert the leaderboard to a table with borders
-    leaderboard_table = tabulate(leaderboard_df.reset_index(drop=True).sort_values(by='total_points', ascending=False), headers='keys', tablefmt='fancy_grid')
-    print('Leaderboard: \n',leaderboard_df)
+    leaderboard_table = tabulate(leaderboard_df.sort_values(by=points_column, ascending=False).reset_index(drop=True), 
+                                 headers='keys', 
+                                 showindex=True, 
+                                 tablefmt='fancy_grid')
+    print(f'{unit_of_time.capitalize()} Leaderboard:\n',leaderboard_df)
     # Send the leaderboard as a message in the text_channel
-    await ctx.send(f"Leaderboard:\n```\n{leaderboard_table}\n```")
+    await ctx.send(f"{unit_of_time.capitalize()} Leaderboard:\n```\n{leaderboard_table}\n```")
+
+def _process_query(query):
+    query = query.strip().upper()
+    if '' == query:
+        return 'all_time', ''
+    elif 'ON TIME' in query or 'DURATION' in query:
+        return query, f"""AND type = "{query}" """
+    elif 'TODAY' in query:
+        return 'daily', f"""AND day = "{datetime.now().date()}" """
+    elif 'WEEK' in query:
+        last_monday = datetime.now().date() - timedelta(days=datetime.now().weekday())
+        return 'weekly', f"""AND day >= "{last_monday}" """
+    elif 'MONTH' in query:
+        return 'monthly', f"""AND day >= "{datetime.now().date().replace(day=1)}" """
+    elif 'YEAR' in query:
+        return 'yearly', f"""AND day >= "{datetime.now().date().replace(month=1, day=1)}" """
 
 def calculate_points(users_df, users_durations):
     walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
@@ -233,46 +251,49 @@ def process_points_df(users_df, points_df, points_type, day):
     points_df = points_df.merge(users_df[['name', 'id']], left_on='id', right_on='id', how='left').drop_duplicates()
     print(f'{points_type} points df after merge: \n', points_df)
     points_df = points_df[['name', 'id', 'points_awarded', 'day', 'type']]
-
-    # if len(points_df) == 1:
-    #     await text_channel.send(f"Awarded {points_df['points_awarded'].values[0]} points to {points_df['name'].values[0]} for {points_df['type'].values[0]}")
     points_df.to_sql('points', conn, if_exists='append', index=False)
     return points_df
 
-@bot.command()
-async def update(ctx):
-    update_points()
-
 @bot.event
 async def on_voice_state_update(member, before, after):
-    
-    # Get current time in Pacific timezone
+    global walk_ended
     current_time = _get_current_time()
     pacific_time = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+    walk_hour_condition = pacific_time.hour >= start_hour and pacific_time.hour < end_hour
 
+
+    if walk_ended:
+        points = pd.read_sql('SELECT day FROM points ORDER BY day DESC LIMIT 1', conn)
+        current_day = str(pacific_time.date())
+        walk_day = str(points.values[0][0])
+        if current_day != walk_day and walk_hour_condition:
+            walk_ended = False
+            print('New walk starting')
+            download()
+        else:
+            print('Walk already ended')
+            return
 
     # Check if the time is between 7am and 9am in Pacific timezone
-    if pacific_time.hour >= start_hour and pacific_time.hour < end_hour:
+    if walk_hour_condition:
         if after.channel is not None and after.channel.name == voice_channel:
             # Get current time in UTC
             join_time = _get_current_time()
             append_to_database(member, after, join_time, joined=True)
-            # Send a message in the general text channel
-            await log_and_upload(member, join_time, True)
+            log_and_upload(member, join_time, True)
 
         if before.channel is not None and before.channel.name == voice_channel:
             leave_time = _get_current_time()
             
             append_to_database(member, before, leave_time, joined=False)
-            await log_and_upload(member, leave_time, False)
+            log_and_upload(member, leave_time, False)
 
-async def log_and_upload(member, event_time, joining):
-    logging_channel = current_text_channel(member)
+def log_and_upload(member, event_time, joining):
     if verbose:
-        await log_data(logging_channel, member, event_time, joining)
+        log_data(member, event_time, joining)
     upload()
 
-async def log_data(channel, member, event_time, joining):
+def log_data(member, event_time, joining):
     leaving_str = "leaving " if not joining else ""
     print(f'Logged user {member.name} {leaving_str}at {event_time}...')
     print(pd.read_sql_query("SELECT * FROM voice_log", conn).tail())

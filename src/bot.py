@@ -16,8 +16,8 @@ from tabulate import tabulate
 
 # Constants
 db_file = 'dinksters_database.db'
-text_channel = 'larrys-gym-planner-name-subject-to-change'
-current_text_channel = lambda member: discord.utils.get(member.guild.text_channels, name=text_channel)
+text_channel = 'Larry\'s Gym Tracker'
+current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = False
 
@@ -157,8 +157,6 @@ def update_points():
     current_day = users_df['day'].max()
     users_df = users_df.loc[users_df['day'] == current_day]
     users_durations = users_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
-    print('User Durations: ',users_durations)
-    print('User DF: ',users_df)
     calculate_points(users_df, users_durations)
     print(pd.read_sql_query("""SELECT * FROM points""", conn).tail())
 
@@ -177,13 +175,20 @@ async def add_points(text_channel):
     print(pd.read_sql_query("""SELECT * FROM points""", conn))
 
 
+
 @bot.command()
-async def upload_points(ctx):
+async def download_db(ctx):
+    download()
+    # await ctx.send(f'Downloaded {db_file} from Google Drive!')
+
+@bot.command()
+async def upload_db(ctx):
     upload()
     # await ctx.send(f'Uploaded {db_file} to Google Drive!')
 
 @bot.command()
 async def leaderboard(ctx, points_type=''):
+    points_type = points_type.replace('_', ' ')
     role = discord.utils.get(ctx.guild.roles, name='Walker')
     # Select all rows from the points table
     points_type_query = f"""AND type = "{points_type}" """ if points_type else ''
@@ -197,7 +202,7 @@ async def leaderboard(ctx, points_type=''):
     if leaderboard_df.empty:
         # Find all users in the text_channel and output 0 for their points
         leaderboard_series = pd.Series(dict(zip([member.name for member in role.members], [0] * len(role.members))))
-        leaderboard_series.name = 'Total Points'
+        leaderboard_series.name = 'total_points'
         leaderboard_df = leaderboard_series.to_frame()
 
     # Convert the leaderboard to a table with borders

@@ -183,13 +183,16 @@ async def upload_points(ctx):
     # await ctx.send(f'Uploaded {db_file} to Google Drive!')
 
 @bot.command()
-async def leaderboard(ctx):
+async def leaderboard(ctx, points_type=''):
     role = discord.utils.get(ctx.guild.roles, name='Walker')
     # Select all rows from the points table
-    leaderboard_df = pd.read_sql_query(f"""SELECT name, SUM(points_awarded) as total_points 
+    points_type_query = f"""AND type = "{points_type}" """ if points_type else ''
+    leaderboard_query = f"""SELECT name, SUM(points_awarded) as total_points 
                                        FROM points 
                                        WHERE id IN ({','.join([f'"{member.id}"' for member in role.members])}) 
-                                       GROUP BY id""", conn)
+                                       {points_type_query}
+                                       GROUP BY id"""
+    leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
     print(leaderboard_df)
     if leaderboard_df.empty:
         # Find all users in the text_channel and output 0 for their points

@@ -56,7 +56,7 @@ def connect_to_database():
 
     # Create table if it doesn't exist
     c.execute('''CREATE TABLE IF NOT EXISTS points
-                (name text, id text, points_awarded float, time datetime, type text)''')
+                (name text, id text, points_awarded float, day datetime, type text)''')
 
 def download():
     global conn, c, drive
@@ -135,6 +135,12 @@ def upload():
 
 @bot.command()
 async def drop_points(ctx):
+    c.execute("DROP TABLE points")
+    conn.commit()
+    upload()
+
+@bot.command()
+async def delete_all_points(ctx):
     c.execute("DELETE FROM points")
     conn.commit()
     upload()
@@ -144,9 +150,8 @@ def update_points():
     # Groupby name and id, extract day from date and groupby day, subtract max and min time to get duration
     # Divide duration by walk duration to get points
     users_df = pd.read_sql_query("""
-                            SELECT name, id, time 
-                            FROM voice_log
-                            GROUP BY name, id""", conn)
+                            SELECT * 
+                            FROM voice_log""", conn)
     users_df['time'] = users_df['time'].astype('datetime64[ns]')
     users_df['day'] = users_df['time'].dt.date
     current_day = users_df['day'].max()
@@ -167,7 +172,7 @@ async def add_points(text_channel):
                             LIMIT 2""", conn)
     users_df['time'] = users_df['time'].astype('datetime64[ns]')
     users_durations = users_df.groupby('id').apply(lambda user: user['time'].max() - user['time'].min())
-    print('User Durations: ',users_durations)
+    # print('User Durations: ',users_durations)
     calculate_points(users_df, users_durations)
     print(pd.read_sql_query("""SELECT * FROM points""", conn))
 
@@ -194,7 +199,7 @@ async def leaderboard(ctx):
 
     # Convert the leaderboard to a table with borders
     leaderboard_table = tabulate(leaderboard_df.reset_index(drop=True).sort_values(by='total_points', ascending=False), headers='keys', tablefmt='fancy_grid')
-
+    print('Leaderboard: \n',leaderboard_df)
     # Send the leaderboard as a message in the text_channel
     await ctx.send(f"Leaderboard:\n```\n{leaderboard_table}\n```")
 
@@ -205,19 +210,24 @@ def calculate_points(users_df, users_durations):
     late_time = (users_df.groupby('id').apply(lambda user: user['time'].min() - user['time'].min().replace(hour=start_hour, minute=0, second=0)))
     on_time_points = max_on_time_points - (late_time.dt.total_seconds() / (walk_time_in_seconds / 2)) * 50
     on_time_points.loc[on_time_points<0] = 0
+    # print('User Durations:',users_durations)
+    day = users_df['day'].max()
+    users_df = users_df[['name', 'id', 'day']].drop_duplicates()
+    process_points_df(users_df, on_time_points, 'ON TIME', day)
+    process_points_df(users_df, duration_points, 'DURATION', day)    
 
-    process_points_df(users_df, on_time_points, 'ON TIME')
-    process_points_df(users_df, duration_points, 'DURATION')    
-
-def process_points_df(users_df, points_df, points_type):
+def process_points_df(users_df, points_df, points_type, day):
     points_df.name = 'points_awarded'
     points_df = points_df.to_frame()
     points_df['type'] = points_type
-    points_df = points_df.merge(users_df.loc[users_df['day'] == users_df['day'].max(), ['name', 'id', 'time']], how='left', left_on='id', right_on='id')
-    points_df = points_df[['name', 'id', 'points_awarded', 'time', 'type']]
+    points_df['day'] = day
+    print(f'{points_type} points df before merge: \n', points_df)
+    points_df = points_df.merge(users_df[['name', 'id']], left_on='id', right_on='id', how='left').drop_duplicates()
+    print(f'{points_type} points df after merge: \n', points_df)
+    points_df = points_df[['name', 'id', 'points_awarded', 'day', 'type']]
+
     # if len(points_df) == 1:
     #     await text_channel.send(f"Awarded {points_df['points_awarded'].values[0]} points to {points_df['name'].values[0]} for {points_df['type'].values[0]}")
-    print(points_df)
     points_df.to_sql('points', conn, if_exists='append', index=False)
     return points_df
 

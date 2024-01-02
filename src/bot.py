@@ -13,6 +13,7 @@ import requests
 from discord import Permissions
 from datetime import timedelta
 from tabulate import tabulate
+from discord import Embed
 
 # Constants
 db_file = 'dinksters_database.db'
@@ -184,15 +185,14 @@ async def upload_db(ctx):
     # await ctx.send(f'Uploaded {db_file} to Google Drive!')
 
 @bot.command()
+
 async def leaderboard(ctx, *args):
     query = ' '.join(args)
-    if 'ON TIME' in query or 'DURATION' in query:
-        points_type = query
     role = discord.utils.get(ctx.guild.roles, name='Walker')
     # Select all rows from the points table
     unit_of_time, time_filter = _process_query(query)
     
-    points_column = f'{unit_of_time} points' if unit_of_time else 'total_points'
+    points_column = f'{unit_of_time}' if unit_of_time else 'total'
     leaderboard_query = f"""SELECT name, SUM(points_awarded) as '{points_column}'
                                        FROM points 
                                        WHERE id IN ({','.join([f'"{member.id}"' for member in role.members])}) 
@@ -203,22 +203,22 @@ async def leaderboard(ctx, *args):
     if leaderboard_df.empty:
         # Find all users in the text_channel and output 0 for their points
         leaderboard_series = pd.Series(dict(zip([member.name for member in role.members], [0] * len(role.members))))
-        leaderboard_series.name = 'total_points'
+        leaderboard_series.name = points_column
         leaderboard_df = leaderboard_series.to_frame()
-
+    leaderboard_df[points_column] = leaderboard_df[points_column].round(2) 
     # Convert the leaderboard to a table with borders
     leaderboard_table = tabulate(leaderboard_df.sort_values(by=points_column, ascending=False).reset_index(drop=True), 
                                  headers='keys', 
-                                 showindex=True, 
-                                 tablefmt='fancy_grid')
+                                 showindex=False, 
+                                 tablefmt='simple_grid')
     print(f'{unit_of_time.capitalize()} Leaderboard:\n',leaderboard_df)
-    # Send the leaderboard as a message in the text_channel
-    await ctx.send(f"{unit_of_time.capitalize()} Leaderboard:\n```\n{leaderboard_table}\n```")
+    
+    await ctx.send(f'```{leaderboard_table}```')    
 
 def _process_query(query):
     query = query.strip().upper()
     if '' == query:
-        return 'all_time', ''
+        return 'total', ''
     elif 'ON TIME' in query or 'DURATION' in query:
         return query, f"""AND type = "{query}" """
     elif 'TODAY' in query:

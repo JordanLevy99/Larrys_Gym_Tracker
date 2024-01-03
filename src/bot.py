@@ -190,14 +190,19 @@ async def leaderboard(ctx, *args):
     query = ' '.join(args)
     role = discord.utils.get(ctx.guild.roles, name='Walker')
     # Select all rows from the points table
-    unit_of_time, time_filter = _process_query(query)
+    points_column, time_filter, type_filter = _process_query(query)
     
-    points_column = f'{unit_of_time}' if unit_of_time else 'total'
+    points_column = f'{points_column}' if points_column else 'total'
+    print(points_column, time_filter, type_filter)
     leaderboard_query = f"""SELECT name, SUM(points_awarded) as '{points_column}'
-                                       FROM points 
-                                       WHERE id IN ({','.join([f'"{member.id}"' for member in role.members])}) 
-                                       {time_filter}
-                                       GROUP BY id"""
+                            FROM (
+                                SELECT name, id, points_awarded, day, type
+                                FROM points
+                                WHERE id IN ({','.join([f'"{member.id}"' for member in role.members])})
+                                {type_filter}
+                            )  
+                            {time_filter}
+                            GROUP BY id"""
     leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
     print(leaderboard_df)
     if leaderboard_df.empty:
@@ -211,25 +216,28 @@ async def leaderboard(ctx, *args):
                                  headers='keys', 
                                  showindex=False, 
                                  tablefmt='simple_grid')
-    print(f'{unit_of_time.capitalize()} Leaderboard:\n',leaderboard_df)
+    print(f'{points_column.capitalize()} Leaderboard:\n',leaderboard_df)
     
     await ctx.send(f'```{leaderboard_table}```')    
 
-def _process_query(query):
+def _process_query(query, type_filter=''):
     query = query.strip().upper()
+    print(query)
     if '' == query:
-        return 'total', ''
-    elif 'ON TIME' in query or 'DURATION' in query:
-        return query, f"""AND type = "{query}" """
+        return 'total', '', ''
+    elif 'ON TIME' in query:
+        return _process_query(query.replace('ON TIME', ''), type_filter="""AND type = "ON TIME" """)
+    elif 'DURATION' in query:
+        return _process_query(query.replace('DURATION', ''), type_filter="""AND type = "DURATION" """)
     elif 'TODAY' in query:
-        return 'daily', f"""AND day = "{datetime.now().date()}" """
+        return 'daily', f"""WHERE day = "{datetime.now().date()}" """, type_filter
     elif 'WEEK' in query:
         last_monday = datetime.now().date() - timedelta(days=datetime.now().weekday())
-        return 'weekly', f"""AND day >= "{last_monday}" """
+        return 'weekly', f"""WHERE day >= "{last_monday}" """, type_filter
     elif 'MONTH' in query:
-        return 'monthly', f"""AND day >= "{datetime.now().date().replace(day=1)}" """
+        return 'monthly', f"""WHERE day >= "{datetime.now().date().replace(day=1)}" """, type_filter
     elif 'YEAR' in query:
-        return 'yearly', f"""AND day >= "{datetime.now().date().replace(month=1, day=1)}" """
+        return 'yearly', f"""WHERE day >= "{datetime.now().date().replace(month=1, day=1)}" """, type_filter
 
 def calculate_points(users_df, users_durations):
     print(users_durations)

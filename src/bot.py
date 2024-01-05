@@ -244,7 +244,7 @@ def calculate_points(users_df, users_durations):
     walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
     duration_points = (users_durations.dt.total_seconds() / walk_time_in_seconds) * 50
     duration_points.loc[duration_points>max_duration_points] = max_duration_points
-    late_time = (users_df.groupby('id').apply(lambda user: user['time'].min() - user['time'].min().replace(hour=start_hour, minute=0, second=0)))
+    late_time = (users_df.groupby('id').apply(lambda user: user['time'].min() - user['time'].min().replace(hour=start_hour, minute=0, second=0, microsecond=0)))
     on_time_points = max_on_time_points - (late_time.dt.total_seconds() / (walk_time_in_seconds / 2)) * 50
     on_time_points.loc[on_time_points<0] = 0
     # print('User Durations:',users_durations)
@@ -267,11 +267,10 @@ def process_points_df(users_df, points_df, points_type, day):
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    global walk_ended
+    global walk_ended, length_of_walk_in_minutes, max_on_time_points, max_duration_points, start_hour, end_hour
     current_time = _get_current_time()
-    pacific_time = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+    pacific_time = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S.%f")
     walk_hour_condition = pacific_time.hour >= start_hour and pacific_time.hour < end_hour
-
 
     if walk_ended:
         points = pd.read_sql('SELECT day FROM points ORDER BY day DESC LIMIT 1', conn)
@@ -292,7 +291,12 @@ async def on_voice_state_update(member, before, after):
             join_time = _get_current_time()
             append_to_database(member, after, join_time, joined=True)
             log_and_upload(member, join_time, True)
-
+            await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym at {join_time}.")
+            join_time = datetime.strptime(join_time, "%Y-%m-%d %H:%M:%S.%f")
+            late_time =  (join_time - join_time.replace(hour=start_hour, minute=0, second=0, microsecond=0))
+            walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
+            calculated_points = max(max_on_time_points - (late_time.total_seconds() / (walk_time_in_seconds / 2)) * 50, 0)
+            await member.send(f"You will earn {calculated_points} points. {'Congrats!' if calculated_points > 49 else 'Better luck next time!'}")
         if before.channel is not None and before.channel.name == voice_channel:
             leave_time = _get_current_time()
             
@@ -321,7 +325,7 @@ def _get_current_time():
     pacific_time = utc_now.astimezone(pacific_tz)
         
     # Format the time
-    join_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S")
+    join_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S.%f")
     return join_time
 
 bot.run(bot_token)

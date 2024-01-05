@@ -184,8 +184,9 @@ async def upload_db(ctx):
     upload()
     # await ctx.send(f'Uploaded {db_file} to Google Drive!')
 
-@bot.command()
 
+
+@bot.command()
 async def leaderboard(ctx, *args):
     query = ' '.join(args)
     role = discord.utils.get(ctx.guild.roles, name='Walker')
@@ -292,16 +293,18 @@ async def on_voice_state_update(member, before, after):
             append_to_database(member, after, join_time, joined=True)
             log_and_upload(member, join_time, True)
             await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym at {join_time}.")
-            join_time = datetime.strptime(join_time, "%Y-%m-%d %H:%M:%S.%f")
-            late_time =  (join_time - join_time.replace(hour=start_hour, minute=0, second=0, microsecond=0))
-            walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
-            calculated_points = max(max_on_time_points - (late_time.total_seconds() / (walk_time_in_seconds / 2)) * 50, 0)
-            await member.send(f"You will earn {calculated_points} points. {'Congrats!' if calculated_points > 49 else 'Better luck next time!'}")
+            # join_time = datetime.strptime(join_time, "%Y-%m-%d %H:%M:%S.%f")
+            # late_time =  (join_time - join_time.replace(hour=start_hour, minute=0, second=0, microsecond=0))
+            # walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
+            # calculated_points = max(max_on_time_points - (late_time.total_seconds() / (walk_time_in_seconds / 2)) * 50, 0)
+            # await member.send(f"You will earn {calculated_points} points. {'Congrats!' if calculated_points > 49 else 'Better luck next time!'}")
         if before.channel is not None and before.channel.name == voice_channel:
             leave_time = _get_current_time()
             
             append_to_database(member, before, leave_time, joined=False)
             log_and_upload(member, leave_time, False)
+    elif after.channel is not None and after.channel.name == voice_channel:
+        await member.send(f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between {start_hour}:00 and {end_hour}:00 Pacific time.")
 
 def log_and_upload(member, event_time, joining):
     if verbose:

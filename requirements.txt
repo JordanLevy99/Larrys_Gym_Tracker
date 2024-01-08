@@ -5,3 +5,4 @@ pydrive
 APScheduler
 tabulate
 dropbox
+PyNaCl

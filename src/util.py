@@ -20,11 +20,16 @@ cursor = conn.cursor()
 #                     ('bemno', 369989877229682688, '2024-01-07 07:49:04.000000', "Larry's Gym", 0)
 #         """
 
-# query = "DELETE FROM points WHERE points_awarded > 49.86 and points_awarded < 49.87"
-query = "DROP TABLE 'larrys_database.db'"
+query = "SELECT DISTINCT * FROM points"
+# query = "DROP TABLE 'larrys_database.db'"
+# query = "UPDATE points SET points_awarded = points_awarded - 2000 WHERE points_awarded > 2000"
+
 # query = "SELECT name FROM sqlite_master WHERE type='table'"
-cursor.execute(query)
+# cursor.execute(query)
+query = "DELETE FROM points WHERE rowid NOT IN (SELECT MIN(rowid) FROM points GROUP BY name, id, points_awarded, day, type)"
+
 # print(pd.read_sql_query(query, conn))
+cursor.execute(query)
 
 # Commit the changes and close the connection
 conn.commit()

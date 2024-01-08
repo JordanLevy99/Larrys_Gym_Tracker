@@ -25,11 +25,11 @@ import asyncio
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
 text_channel = 'larrys-gym-logger'
-# text_channel_id = 1193971930794045544
-# voice_channel_id = 1143972564616626209
+text_channel_id = 1193971930794045544
+voice_channel_id = 1143972564616626209
 ### TODO: uncomment below two lines to test on test server ###
-text_channel_id = 1193977937955913879
-voice_channel_id = 1191159993861414922
+# text_channel_id = 1193977937955913879
+# voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True
@@ -44,8 +44,8 @@ max_on_time_points = 50
 max_duration_points = 50
 walk_ended = False
 
-winner_hour = 12
-winner_minute = 40
+winner_hour = start_hour
+winner_minute = 8
 
 winner_songs = {
     # Provides the song name, duration, and start second

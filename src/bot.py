@@ -25,11 +25,11 @@ import asyncio
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
 text_channel = 'larrys-gym-logger'
-text_channel_id = 1193971930794045544
-voice_channel_id = 1143972564616626209
+# text_channel_id = 1193971930794045544
+# voice_channel_id = 1143972564616626209
 ### TODO: uncomment below two lines to test on test server ###
-# text_channel_id = 1193977937955913879
-# voice_channel_id = 1191159993861414922
+text_channel_id = 1193977937955913879
+voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True
@@ -44,6 +44,14 @@ max_on_time_points = 50
 max_duration_points = 50
 walk_ended = False
 
+winner_hour = 12
+winner_minute = 25
+
+winner_songs = {
+    # Provides the song name, duration, and start second
+    'jam4bears': ('rocky_balboa.mp3', 15, 0),
+    'dinkstar': ('chug_jug_with_you.mp3', 32, 1)
+}
 # Load the .env file
 load_dotenv()
 
@@ -75,7 +83,7 @@ def connect_to_database():
 
 def download():
     global conn, c
-
+    print(db_file)
     dropbox.download_file(db_file)
 
     # Read the file into a pandas DataFrame
@@ -92,8 +100,9 @@ download()
 
 @bot.command()
 async def start_time(ctx, start_time: int):
-    global start_hour, end_hour
+    global start_hour, end_hour, winner_hour
     start_hour = start_time
+    winner_hour = start_time
     end_hour = start_time + 2
     await ctx.send(f'Walk start time set to {start_hour}:00 Pacific time for today...')
 
@@ -107,52 +116,27 @@ async def copy_database(ctx, new_db_file: str):
     connect_to_database()
     upload()
 
-winner_hour = 7
-winner_minute = 10
-
-winner_songs = {
-    # Provides the song name, duration, and start second
-    'jam4bears': ('Rocky Balboa - Theme Song (HD).mp3', 15, 0),
-    'dinkstar': ('Leviathan - Chug Jug With You (Fortnite Music Video)  Number One Victory Royale...mp3', 32, 1)
-}
 
 @tasks.loop(hours=24)
 async def determine_daily_winner():
-    now = datetime.now()
-        # Convert to Pacific time
-    pacific_tz = pytz.timezone('US/Pacific')
-    pacific_time = now.astimezone(pacific_tz)
     voice_channel = bot.get_channel(voice_channel_id)
-    try:
-        voice_client = await voice_channel.connect()
-    except discord.errors.ClientException:
-        print(
-            f'Already connected to a voice channel.')
+
+    if voice_channel and len(voice_channel.members) >= 1:
+        try:
+            voice_client = await voice_channel.connect()
+        except discord.errors.ClientException:
+            print(
+                f'Already connected to a voice channel.')
         
         voice_client = bot.voice_clients[0]
-    # voice_channel = discord.utils.get(bot.voice_channels, name="Larry's Gym")
-    if voice_channel and len(voice_channel.members) >= 1:
-        print(voice_channel.members)
         winner = await determine_winner()
+        if winner.empty:
+            print('No winner found')
+            return
         winner_args = winner_songs[winner['name']]
-        await play_song(voice_client, str(Path('data') / 'songs' / winner_args[0]), winner_args[1], winner_args[2])
-    # # voice_channel = discord.utils.get(bot.voice_channels, name="Larry's Gym")
-    # # channel = discord.utils.get(ctx.guild.voice_channels, name='Invisible Boatmobile')
-    # text_channel = bot.get_channel(text_channel_id)
-    # # text_channel = discord.utils.get(bot.text_channels, name="Larry's Gym Tracker")
-    # if pacific_time.hour == hour and pacific_time.minute == minute:
-    #     await text_channel.send("Good morning!")
-    # else:
-    #     target_time = datetime.replace(now, hour=hour, minute=minute, second=0, microsecond=0)
-    #     if now > target_time:
-    #         target_time += datetime.timedelta(days=1)
-    #     await asyncio.sleep((target_time - now).total_seconds())
-    # channel = None
-    # # voice_channel = discord.utils.get(bot.voice_channels, name="Larry's Gym")
-    # if channel and len(channel.members) >= 4:
-    #     await text_channel.send("There are 4 or more people in Larry's Gym!")
-    # else:
-    #     await text_channel.send("There are less than 4 people in Larry's Gym!")
+        await play_song(voice_client, f'data/songs/{winner_args[0]}', winner_args[1], winner_args[2])
+    else:
+        print('not enough people in the vc')
 
 async def determine_winner(*args):
 
@@ -172,6 +156,8 @@ async def determine_winner(*args):
     return winner
 
 async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15):
+    print(file_path)
+    dropbox.download_file(file_path)
     voice_client.play(discord.FFmpegPCMAudio(file_path,  options=f'-ss {start_second}'))
     await asyncio.sleep(duration)
     voice_client.stop()

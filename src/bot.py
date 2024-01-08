@@ -15,8 +15,12 @@ from datetime import timedelta
 from tabulate import tabulate
 from discord import Embed
 
+from backend import Dropbox
+import shutil
+
 # Constants
-db_file = 'dinksters_database.db'
+db_file = 'larrys_database.db'
+# db_file = 'test.db'
 text_channel = 'Larry\'s Gym Tracker'
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
@@ -46,6 +50,8 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+dropbox = Dropbox()
+
 def connect_to_database():
     global conn, c
     # Connect to the SQLite database
@@ -61,39 +67,18 @@ def connect_to_database():
                 (name text, id text, points_awarded float, day datetime, type text)''')
 
 def download():
-    global conn, c, drive
-    # Authenticate with Google Drive
-    gauth = GoogleAuth()
-    # gauth.LocalWebserverAuth()
+    global conn, c
 
-    # Create a Google Drive instance
-    drive = GoogleDrive(gauth)
+    dropbox.download_file(db_file)
 
-    # Check if the file exists in Google Drive
-    file_list = drive.ListFile({'q': f"title='{db_file}'"}).GetList()
-    if file_list:
-        # Download the file
-        file = file_list[0]
-        file.GetContentFile(db_file)
+    # Read the file into a pandas DataFrame
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    df = pd.read_sql_query("SELECT * FROM voice_log", conn)
 
-        # URL of the file in Google Drive
-        file_id = file['id']
-
-        # Construct the download link
-        download_link = f'https://drive.google.com/uc?id={file_id}'
-        print(download_link)
-        requests.get(download_link)
-        # Read the file into a pandas DataFrame
-        conn = sqlite3.connect(db_file)
-        c = conn.cursor()
-        df = pd.read_sql_query("SELECT * FROM voice_log", conn)
-
-        # Print the last five entries of the DataFrame
-        print(df.tail())
-        df.to_sql(db_file, conn, if_exists='replace', index=False)
-        print(f'Downloaded {db_file} from Google Drive!')
-    else:
-        print(f'{db_file} does not exist in Google Drive.')
+    # Print the last five entries of the DataFrame
+    print(df.tail())
+    df.to_sql(db_file, conn, if_exists='replace', index=False)
 
 connect_to_database()
 download()
@@ -107,32 +92,36 @@ async def start_time(ctx, start_time: int):
 
 
 @bot.command()
-async def database(ctx, new_db_file: str):
+async def copy_database(ctx, new_db_file: str):
     global db_file
+    shutil.copyfile(db_file, new_db_file)
     db_file = new_db_file
     await ctx.send(f'Database file set to {db_file}')
     connect_to_database()
+    upload()
 
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
 
 def upload():
-    # Query the voice_log table    
-    # Check if the file already exists in Google Drive
-    file_list = drive.ListFile({'q': f"title='{db_file}'"}).GetList()
-    if file_list:
-        # Update the existing file
-        file = file_list[0]
-        file.SetContentFile(db_file)
-        file.Upload()
-        print(f'Updated {db_file} in Google Drive!')
-    else:
-        # Upload the CSV file to Google Drive
-        file = drive.CreateFile({'title': db_file})
-        file.SetContentFile(db_file)
-        file.Upload()
-        print(f'Uploaded {db_file} to Google Drive!')
+    dropbox.upload_file(db_file)
+    
+    # # Query the voice_log table    
+    # # Check if the file already exists in Google Drive
+    # file_list = drive.ListFile({'q': f"title='{db_file}'"}).GetList()
+    # if file_list:
+    #     # Update the existing file
+    #     file = file_list[0]
+    #     file.SetContentFile(db_file)
+    #     file.Upload()
+    #     print(f'Updated {db_file} in Google Drive!')
+    # else:
+    #     # Upload the CSV file to Google Drive
+    #     file = drive.CreateFile({'title': db_file})
+    #     file.SetContentFile(db_file)
+    #     file.Upload()
+    #     print(f'Uploaded {db_file} to Google Drive!')
 
 @bot.command()
 async def end_walk(ctx):
@@ -182,6 +171,7 @@ async def download_db(ctx):
 @bot.command()
 async def upload_db(ctx):
     upload()
+    print(f'Uploaded {db_file} to Dropbox!')
     # await ctx.send(f'Uploaded {db_file} to Google Drive!')
 
 

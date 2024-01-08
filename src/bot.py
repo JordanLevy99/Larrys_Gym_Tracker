@@ -45,7 +45,7 @@ max_duration_points = 50
 walk_ended = False
 
 winner_hour = 12
-winner_minute = 25
+winner_minute = 26
 
 winner_songs = {
     # Provides the song name, duration, and start second
@@ -166,6 +166,7 @@ async def play_song(voice_client, file_path: str, duration: int = 16, start_seco
 @determine_daily_winner.before_loop
 async def before_determine_daily_winner():
     now = datetime.now()
+    now = now.astimezone(pytz.timezone('US/Pacific'))
     target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute, second=0, microsecond=0)
     if now > target_time:
         target_time += timedelta(days=1)

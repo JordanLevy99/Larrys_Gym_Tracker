@@ -1,6 +1,7 @@
+from datetime import datetime
 import sqlite3
 import pandas as pd
-
+from datetime import timedelta
 # # Connect to the database
 conn = sqlite3.connect('larrys_database.db')
 cursor = conn.cursor()
@@ -20,16 +21,28 @@ cursor = conn.cursor()
 #                     ('bemno', 369989877229682688, '2024-01-07 07:49:04.000000', "Larry's Gym", 0)
 #         """
 
-query = "SELECT DISTINCT * FROM points"
+# query = "SELECT DISTINCT * FROM points"
 # query = "DROP TABLE 'larrys_database.db'"
 # query = "UPDATE points SET points_awarded = points_awarded - 2000 WHERE points_awarded > 2000"
 
 # query = "SELECT name FROM sqlite_master WHERE type='table'"
 # cursor.execute(query)
-query = "DELETE FROM points WHERE rowid NOT IN (SELECT MIN(rowid) FROM points GROUP BY name, id, points_awarded, day, type)"
+# query = "DELETE FROM points WHERE rowid NOT IN (SELECT MIN(rowid) FROM points GROUP BY name, id, points_awarded, day, type)"
+
+# Select all rows from the points table
+leaderboard_query = f"""SELECT name, MIN(time) as 'total'
+                        FROM (
+                            SELECT name, id, time
+                            FROM voice_log
+                            WHERE time >= "{datetime.now().date()}"
+                        )  
+                        GROUP BY id"""
+print(leaderboard_query)
+leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
+print(leaderboard_df)
 
 # print(pd.read_sql_query(query, conn))
-cursor.execute(query)
+# cursor.execute(query)
 
 # Commit the changes and close the connection
 conn.commit()

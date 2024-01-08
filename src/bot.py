@@ -1,8 +1,6 @@
-import discord
-from discord.ext import commands
-import sqlite3
 from datetime import datetime
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import pandas as pd
 from pydrive.auth import GoogleAuth
@@ -14,23 +12,33 @@ from discord import Permissions
 from datetime import timedelta
 from tabulate import tabulate
 from discord import Embed
+from discord.ext import tasks, commands
+import discord
+import sqlite3
+
 
 from backend import Dropbox
 import shutil
+import asyncio
 
 # Constants
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
-text_channel = 'Larry\'s Gym Tracker'
+text_channel = 'larrys-gym-logger'
+text_channel_id = 1193971930794045544
+voice_channel_id = 1143972564616626209
+### TODO: uncomment below two lines to test on test server ###
+# text_channel_id = 1193977937955913879
+# voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True
 
 # Walking constants
-global start_hour, end_hour
+# global start_hour, end_hour
 
 start_hour = 7
-end_hour =  9
+end_hour = 9
 length_of_walk_in_minutes = 45
 max_on_time_points = 50
 max_duration_points = 50
@@ -46,7 +54,6 @@ bot_token = os.getenv('BOT_TOKEN')
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -100,9 +107,101 @@ async def copy_database(ctx, new_db_file: str):
     connect_to_database()
     upload()
 
+winner_hour = 7
+winner_minute = 10
+
+winner_songs = {
+    # Provides the song name, duration, and start second
+    'jam4bears': ('Rocky Balboa - Theme Song (HD).mp3', 15, 0),
+    'dinkstar': ('Leviathan - Chug Jug With You (Fortnite Music Video)  Number One Victory Royale...mp3', 32, 1)
+}
+
+@tasks.loop(hours=24)
+async def determine_daily_winner():
+    now = datetime.now()
+        # Convert to Pacific time
+    pacific_tz = pytz.timezone('US/Pacific')
+    pacific_time = now.astimezone(pacific_tz)
+    voice_channel = bot.get_channel(voice_channel_id)
+    try:
+        voice_client = await voice_channel.connect()
+    except discord.errors.ClientException:
+        print(
+            f'Already connected to a voice channel.')
+        
+        voice_client = bot.voice_clients[0]
+    # voice_channel = discord.utils.get(bot.voice_channels, name="Larry's Gym")
+    if voice_channel and len(voice_channel.members) >= 1:
+        print(voice_channel.members)
+        winner = await determine_winner()
+        winner_args = winner_songs[winner['name']]
+        await play_song(voice_client, str(Path('data') / 'songs' / winner_args[0]), winner_args[1], winner_args[2])
+    # # voice_channel = discord.utils.get(bot.voice_channels, name="Larry's Gym")
+    # # channel = discord.utils.get(ctx.guild.voice_channels, name='Invisible Boatmobile')
+    # text_channel = bot.get_channel(text_channel_id)
+    # # text_channel = discord.utils.get(bot.text_channels, name="Larry's Gym Tracker")
+    # if pacific_time.hour == hour and pacific_time.minute == minute:
+    #     await text_channel.send("Good morning!")
+    # else:
+    #     target_time = datetime.replace(now, hour=hour, minute=minute, second=0, microsecond=0)
+    #     if now > target_time:
+    #         target_time += datetime.timedelta(days=1)
+    #     await asyncio.sleep((target_time - now).total_seconds())
+    # channel = None
+    # # voice_channel = discord.utils.get(bot.voice_channels, name="Larry's Gym")
+    # if channel and len(channel.members) >= 4:
+    #     await text_channel.send("There are 4 or more people in Larry's Gym!")
+    # else:
+    #     await text_channel.send("There are less than 4 people in Larry's Gym!")
+
+async def determine_winner(*args):
+
+    # Select all rows from the points table
+    leaderboard_query = f"""SELECT name, MIN(time) as 'time'
+                            FROM (
+                                SELECT name, id, time
+                                FROM voice_log
+                                WHERE time >= "{datetime.now().date()}"
+                            )  
+                            GROUP BY id"""
+    print(leaderboard_query)
+    leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
+    print(leaderboard_df)
+    leaderboard_df['time'] = leaderboard_df['time'].astype('datetime64[ns]')
+    winner = leaderboard_df.sort_values(by='time', ascending=True).iloc[0]
+    return winner
+
+async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15):
+    voice_client.play(discord.FFmpegPCMAudio(file_path,  options=f'-ss {start_second}'))
+    await asyncio.sleep(duration)
+    voice_client.stop()
+    await voice_client.disconnect()
+
+@determine_daily_winner.before_loop
+async def before_determine_daily_winner():
+    now = datetime.now()
+    target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute, second=0, microsecond=0)
+    if now > target_time:
+        target_time += timedelta(days=1)
+    print('Waiting until', target_time)
+    print(f'wait time: {(target_time - now).total_seconds()}')
+    await asyncio.sleep((target_time - now).total_seconds())
+
+
+@bot.command()
+async def get_id(ctx):
+    # await ctx.send(
+    channel = discord.utils.get(ctx.guild.channels, name=text_channel)
+    channel_id = channel.id
+    print(f'The channel id for {text_channel} is {channel_id}')
+    channel = discord.utils.get(ctx.guild.channels, name=voice_channel)
+    channel_id = channel.id
+    print(f'The channel id for {voice_channel} is {channel_id}')
+
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
+    determine_daily_winner.start()
 
 def upload():
     dropbox.upload_file(db_file)
@@ -162,6 +261,11 @@ async def update_points(ctx):
     print(pd.read_sql_query("""SELECT * FROM points""", conn).tail())
     await leaderboard(ctx, 'WEEKLY')
     upload()
+
+
+
+
+
 
 @bot.command()
 async def download_db(ctx):

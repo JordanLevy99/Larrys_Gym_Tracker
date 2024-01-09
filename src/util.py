@@ -37,9 +37,13 @@ leaderboard_query = f"""SELECT name, MIN(time) as 'total'
                             WHERE time >= "{datetime.now().date()}"
                         )  
                         GROUP BY id"""
-print(leaderboard_query)
-leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
-print(leaderboard_df)
+# print(leaderboard_query)
+eight_am_today = datetime.now().replace(hour=8, minute=0, second=0, microsecond=0)
+delete_query = f"DELETE FROM voice_log WHERE time > '{eight_am_today}'"
+cursor.execute(delete_query)
+
+# leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
+# print(leaderboard_df)
 
 # print(pd.read_sql_query(query, conn))
 # cursor.execute(query)

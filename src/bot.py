@@ -25,11 +25,11 @@ import asyncio
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
 text_channel = 'larrys-gym-logger'
-text_channel_id = 1193971930794045544
-voice_channel_id = 1143972564616626209
+# text_channel_id = 1193971930794045544
+# voice_channel_id = 1143972564616626209
 ### TODO: uncomment below two lines to test on test server ###
-# text_channel_id = 1193977937955913879
-# voice_channel_id = 1191159993861414922
+text_channel_id = 1193977937955913879
+voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True
@@ -45,11 +45,12 @@ max_duration_points = 50
 walk_ended = False
 
 winner_hour = start_hour
-winner_minute = 8
+winner_minute = 10
 
 winner_songs = {
     # Provides the song name, duration, and start second
     'jam4bears': ('rocky_balboa.mp3', 15, 0),
+    'bemno': ('wanna_be_free.mp3', 40, 0),
     'dinkstar': ('chug_jug_with_you.mp3', 32, 1)
 }
 # Load the .env file
@@ -66,6 +67,7 @@ intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 dropbox = Dropbox()
+
 
 def connect_to_database():
     global conn, c
@@ -137,6 +139,12 @@ async def determine_daily_winner():
         await play_song(voice_client, f'data/songs/{winner_args[0]}', winner_args[1], winner_args[2])
     else:
         print('not enough people in the vc')
+
+
+@bot.command()
+async def disconnect(ctx):
+    voice_client = bot.voice_clients[0]
+    await voice_client.disconnect()
 
 async def determine_winner(*args):
 

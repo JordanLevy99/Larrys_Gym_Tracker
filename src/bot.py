@@ -38,7 +38,7 @@ verbose = True
 # global start_hour, end_hour
 
 start_hour = 7
-end_hour = 9
+end_hour = 15
 length_of_walk_in_minutes = 45
 max_on_time_points = 50
 max_duration_points = 50

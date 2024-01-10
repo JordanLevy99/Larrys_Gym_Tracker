@@ -45,7 +45,7 @@ max_duration_points = 50
 walk_ended = False
 
 winner_hour = start_hour
-winner_minute = 20
+winner_minute = 8
 
 winner_songs = {
     # Provides the song name, duration, and start second

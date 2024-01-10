@@ -38,14 +38,14 @@ verbose = True
 # global start_hour, end_hour
 
 start_hour = 7
-end_hour = 15
+end_hour = 9
 length_of_walk_in_minutes = 45
 max_on_time_points = 50
 max_duration_points = 50
 walk_ended = False
 
 winner_hour = start_hour
-winner_minute = 10
+winner_minute = 20
 
 winner_songs = {
     # Provides the song name, duration, and start second

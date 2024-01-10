@@ -25,11 +25,11 @@ import asyncio
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
 text_channel = 'larrys-gym-logger'
-# text_channel_id = 1193971930794045544
-# voice_channel_id = 1143972564616626209
+text_channel_id = 1193971930794045544
+voice_channel_id = 1143972564616626209
 ### TODO: uncomment below two lines to test on test server ###
-text_channel_id = 1193977937955913879
-voice_channel_id = 1191159993861414922
+#text_channel_id = 1193977937955913879
+#voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True

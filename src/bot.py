@@ -25,11 +25,11 @@ import asyncio
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
 text_channel = 'larrys-gym-logger'
-# text_channel_id = 1193971930794045544
-# voice_channel_id = 1143972564616626209
+text_channel_id = 1193971930794045544
+voice_channel_id = 1143972564616626209
 ### TODO: uncomment below two lines to test on test server ###
-text_channel_id = 1193977937955913879
-voice_channel_id = 1191159993861414922
+# text_channel_id = 1193977937955913879
+# voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True
@@ -51,7 +51,8 @@ winner_songs = {
     # Provides the song name, duration, and start second
     'jam4bears': ('rocky_balboa.mp3', 15, 0),
     'bemno': ('wanna_be_free.mp3', 40, 0),
-    'dinkstar': ('chug_jug_with_you.mp3', 32, 1)
+    'dinkstar': ('chug_jug_with_you.mp3', 32, 1),
+    'Larry\'s Gym Bot': ('larrys_song.mp3', 26, 0),
 }
 # Load the .env file
 load_dotenv()
@@ -288,7 +289,6 @@ async def leaderboard(ctx, *args):
                             FROM (
                                 SELECT name, id, points_awarded, day, type
                                 FROM points
-                                WHERE id IN ({','.join([f'"{member.id}"' for member in role.members])})
                                 {type_filter}
                             )  
                             {time_filter}
@@ -381,7 +381,7 @@ async def on_voice_state_update(member, before, after):
             join_time = _get_current_time()
             append_to_database(member, after, join_time, joined=True)
             log_and_upload(member, join_time, True)
-            await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym at {join_time}.")
+            await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym within the proper time frame.")
             # join_time = datetime.strptime(join_time, "%Y-%m-%d %H:%M:%S.%f")
             # late_time =  (join_time - join_time.replace(hour=start_hour, minute=0, second=0, microsecond=0))
             # walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()

@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 from datetime import timedelta
 # # Connect to the database
-conn = sqlite3.connect('larrys_database.db')
+conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
 cursor = conn.cursor()
 
 # # Update the format of dates to include microsecond
@@ -30,20 +30,29 @@ cursor = conn.cursor()
 # query = "DELETE FROM points WHERE rowid NOT IN (SELECT MIN(rowid) FROM points GROUP BY name, id, points_awarded, day, type)"
 
 # Select all rows from the points table
-leaderboard_query = f"""SELECT name, MIN(time) as 'total'
-                        FROM (
-                            SELECT name, id, time
-                            FROM voice_log
-                            WHERE time >= "{datetime.now().date()}"
-                        )  
+# leaderboard_query = f"""SELECT name, MIN(time) as 'total'
+#                         FROM (
+#                             SELECT name, id, time
+#                             FROM voice_log
+#                             WHERE time >= "{datetime.now().date()}"
+#                         )  
+#                         GROUP BY id"""
+
+leaderboard_query = f"""SELECT name, SUM(points_awarded) as 'total'
+                            FROM (
+                                SELECT name, id, points_awarded, day, type
+                                FROM points
+
+                            ) 
+                            
                         GROUP BY id"""
 # print(leaderboard_query)
-eight_am_today = datetime.now().replace(hour=8, minute=0, second=0, microsecond=0)
-delete_query = f"DELETE FROM voice_log WHERE time > '{eight_am_today}'"
-cursor.execute(delete_query)
+# eight_am_today = datetime.now().replace(hour=8, minute=0, second=0, microsecond=0)
+# delete_query = f"DELETE FROM voice_log WHERE time > '{eight_am_today}'"
+# cursor.execute(delete_query)
 
-# leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
-# print(leaderboard_df)
+leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
+print(leaderboard_df)
 
 # print(pd.read_sql_query(query, conn))
 # cursor.execute(query)

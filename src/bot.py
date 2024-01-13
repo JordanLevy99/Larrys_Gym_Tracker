@@ -222,7 +222,7 @@ def upload():
 async def end_walk(ctx):
     global walk_ended
     if not walk_ended:
-        await ctx.send(f'Walk ended at {_get_current_time()}! Calculating points...')
+        await ctx.send(f'Walk ended at {_get_current_time()}! Getting weekly leaderboard...')
         await update_points(ctx)
         walk_ended = True
 
@@ -256,6 +256,8 @@ async def update_points(ctx):
     calculate_points(users_df, users_durations)
     print(pd.read_sql_query("""SELECT * FROM points""", conn).tail())
     await leaderboard(ctx, 'WEEKLY')
+    await ctx.send('Getting Today\'s On Time Leaderboard')
+    await leaderboard(ctx, 'on time today')
     upload()
 
 
@@ -314,11 +316,11 @@ def _process_query(query, type_filter=''):
     query = query.strip().upper()
     print(query)
     if '' == query:
-        return 'total', '', ''
+        return 'total', '', type_filter
     elif 'ON TIME' in query:
-        return _process_query(query.replace('ON TIME', ''), type_filter="""AND type = "ON TIME" """)
+        return _process_query(query.replace('ON TIME', ''), type_filter="""WHERE type = "ON TIME" """)
     elif 'DURATION' in query:
-        return _process_query(query.replace('DURATION', ''), type_filter="""AND type = "DURATION" """)
+        return _process_query(query.replace('DURATION', ''), type_filter="""WHERE type = "DURATION" """)
     elif 'TODAY' in query:
         return 'daily', f"""WHERE day = "{datetime.now().date()}" """, type_filter
     elif 'WEEK' in query:
@@ -358,6 +360,10 @@ def process_points_df(users_df, points_df, points_type, day):
 @bot.event
 async def on_voice_state_update(member, before, after):
     global walk_ended, length_of_walk_in_minutes, max_on_time_points, max_duration_points, start_hour, end_hour
+
+    if member.voice is not None and member.voice.self_mute:
+        print(f'{member.name} is muted')
+        return
     current_time = _get_current_time()
     pacific_time = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S.%f")
     walk_hour_condition = pacific_time.hour >= start_hour and pacific_time.hour < end_hour

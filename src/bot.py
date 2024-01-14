@@ -7,7 +7,6 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import pytz
 import pandas as pd
-import requests
 from discord import Permissions
 from datetime import timedelta
 from tabulate import tabulate
@@ -20,16 +19,16 @@ import sqlite3
 from backend import Dropbox
 import shutil
 import asyncio
-
+import random
 # Constants
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
 text_channel = 'larrys-gym-logger'
-text_channel_id = 1193971930794045544
-voice_channel_id = 1143972564616626209
+# text_channel_id = 1193971930794045544
+# voice_channel_id = 1143972564616626209
 ### TODO: uncomment below two lines to test on test server ###
-# text_channel_id = 1193977937955913879
-# voice_channel_id = 1191159993861414922
+text_channel_id = 1193977937955913879
+voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True
@@ -49,10 +48,25 @@ winner_minute = 8
 
 winner_songs = {
     # Provides the song name, duration, and start second
-    'jam4bears': ('rocky_balboa.mp3', 15, 0),
-    'bemno': ('wanna_be_free.mp3', 40, 0),
-    'dinkstar': ('chug_jug_with_you.mp3', 32, 1),
-    'Larry\'s Gym Bot': ('larrys_song.mp3', 26, 0),
+    'jam4bears': [('rocky_balboa.mp3', 15, 0)],
+    'bemno': [('wanna_be_free.mp3', 40, 0)],
+    'dinkstar': [('chug_jug_with_you.mp3', 32, 1)],
+    'Larry\'s Gym Bot': [('larrys_song.mp3', 26, 0)],
+    'shmeg.': [('chum_drum_bedrum.mp3', 67, 26),
+               ('whats_new_scooby_doo.mp3', 64, 0),
+               ('tnt_dynamite.mp3', 64, 18),
+               ('HEYYEYAAEYAAAEYAEYAA.mp3', 84, 0),
+               ('hyrule_field.mp3', 50, 175),
+               ('tunak_tunak.mp3', 76, 26),
+               ('vinland_saga.mp3', 75, 14),
+               ('german_soldiers_song.mp3', 37, 0),
+               ('BED_INTRUDER_SONG.mp3', 76, 0),
+               ('Medal_Of_Honor_European_Assault.mp3', 75, 77),
+               ('Klendathu_Drop.mp3', 80, 0),
+               ('The_Black_Pearl.mp3', 64, 30),
+               ('Rohan_and_Gondor_Themes.mp3', 62, 222),
+               ('The_Ecstasy_of_Gold.mp3', 107, 0),
+               ('Fergie_sings_the_national_anthem.mp3', 62, 77)],
 }
 # Load the .env file
 load_dotenv()
@@ -137,7 +151,8 @@ async def determine_daily_winner():
             print('No winner found')
             return
         winner_args = winner_songs[winner['name']]
-        await play_song(voice_client, f'data/songs/{winner_args[0]}', winner_args[1], winner_args[2])
+        random_winner_args = random.choice(winner_args)
+        await play_song(voice_client, f'data/songs/{random_winner_args[0]}', random_winner_args[1], random_winner_args[2])
     else:
         print('not enough people in the vc')
 
@@ -162,6 +177,7 @@ async def determine_winner(*args):
     print(leaderboard_df)
     leaderboard_df['time'] = leaderboard_df['time'].astype('datetime64[ns]')
     winner = leaderboard_df.sort_values(by='time', ascending=True).iloc[0]
+    print(winner)
     return winner
 
 async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15):

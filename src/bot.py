@@ -24,11 +24,11 @@ import random
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
 text_channel = 'larrys-gym-logger'
-# text_channel_id = 1193971930794045544
-# voice_channel_id = 1143972564616626209
+text_channel_id = 1193971930794045544
+voice_channel_id = 1143972564616626209
 ### TODO: uncomment below two lines to test on test server ###
-text_channel_id = 1193977937955913879
-voice_channel_id = 1191159993861414922
+# text_channel_id = 1193977937955913879
+# voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True
@@ -67,6 +67,7 @@ winner_songs = {
                ('Rohan_and_Gondor_Themes.mp3', 62, 222),
                ('The_Ecstasy_of_Gold.mp3', 107, 0),
                ('Fergie_sings_the_national_anthem.mp3', 62, 77)],
+    'shamupete': [('Bloopin.mp3', 81, 0)]
 }
 # Load the .env file
 load_dotenv()
@@ -217,22 +218,7 @@ async def on_ready():
 
 def upload():
     dropbox.upload_file(db_file)
-    
-    # # Query the voice_log table    
-    # # Check if the file already exists in Google Drive
-    # file_list = drive.ListFile({'q': f"title='{db_file}'"}).GetList()
-    # if file_list:
-    #     # Update the existing file
-    #     file = file_list[0]
-    #     file.SetContentFile(db_file)
-    #     file.Upload()
-    #     print(f'Updated {db_file} in Google Drive!')
-    # else:
-    #     # Upload the CSV file to Google Drive
-    #     file = drive.CreateFile({'title': db_file})
-    #     file.SetContentFile(db_file)
-    #     file.Upload()
-    #     print(f'Uploaded {db_file} to Google Drive!')
+
 
 @bot.command()
 async def end_walk(ctx):
@@ -377,9 +363,9 @@ def process_points_df(users_df, points_df, points_type, day):
 async def on_voice_state_update(member, before, after):
     global walk_ended, length_of_walk_in_minutes, max_on_time_points, max_duration_points, start_hour, end_hour
 
-    if member.voice is not None and member.voice.self_mute:
-        print(f'{member.name} is muted')
-        return
+    # if member.voice is not None and member.voice.self_mute:
+    #     print(f'{member.name} is muted')
+    #     return
     current_time = _get_current_time()
     pacific_time = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S.%f")
     walk_hour_condition = pacific_time.hour >= start_hour and pacific_time.hour < end_hour

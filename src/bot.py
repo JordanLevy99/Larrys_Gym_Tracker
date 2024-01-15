@@ -67,7 +67,8 @@ winner_songs = {
                ('Rohan_and_Gondor_Themes.mp3', 62, 222),
                ('The_Ecstasy_of_Gold.mp3', 107, 0),
                ('Fergie_sings_the_national_anthem.mp3', 62, 77)],
-    'shamupete': [('Bloopin.mp3', 81, 0)]
+    'shamupete': [('Bloopin.mp3', 81, 0),
+                  ('chocolate_rain.mp3', 60, 0)]
 }
 # Load the .env file
 load_dotenv()

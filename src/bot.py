@@ -56,7 +56,7 @@ winner_songs = {
                  ('thot_tactics.mp3', 17, 109),
                  ('jump_out_the_house.mp3', 12, 7)],
     'Larry\'s Gym Bot': [('larrys_song.mp3', 26, 0)],
-    'kyboydigital': [('larrys_song.mp3', 26, 0)],
+    'kyboydigital': [('shenanigans.mp3', 15, 13)],
     'shmeg.': [('chum_drum_bedrum.mp3', 67, 26),
                ('whats_new_scooby_doo.mp3', 64, 0),
                ('tnt_dynamite.mp3', 64, 18),

@@ -48,10 +48,15 @@ winner_minute = 8
 
 winner_songs = {
     # Provides the song name, duration, and start second
-    'jam4bears': [('rocky_balboa.mp3', 15, 0)],
+    'jam4bears': [('rocky_balboa.mp3', 15, 0),
+                  ('walk_it_talk_it.mp3', 45, 40)],
     'bemno': [('wanna_be_free.mp3', 40, 0)],
-    'dinkstar': [('chug_jug_with_you.mp3', 32, 1)],
+    'dinkstar': [('chug_jug_with_you.mp3', 16, 1),
+                 ('jesus_forgive_me_i_am_a_thot.mp3', 23, 122),
+                 ('thot_tactics.mp3', 17, 109),
+                 ('jump_out_the_house.mp3', 12, 7)],
     'Larry\'s Gym Bot': [('larrys_song.mp3', 26, 0)],
+    'kyboydigital': [('larrys_song.mp3', 26, 0)],
     'shmeg.': [('chum_drum_bedrum.mp3', 67, 26),
                ('whats_new_scooby_doo.mp3', 64, 0),
                ('tnt_dynamite.mp3', 64, 18),

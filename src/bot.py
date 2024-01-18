@@ -1,6 +1,8 @@
 from datetime import datetime
 import os
 from pathlib import Path
+import time
+from typing import Tuple
 from dotenv import load_dotenv
 import pandas as pd
 from pydrive.auth import GoogleAuth
@@ -45,6 +47,18 @@ walk_ended = False
 
 winner_hour = start_hour
 winner_minute = 8
+
+# TODO: integrate birthday_args into determine_daily_winner
+# birthday_args = {
+#     # Args are (birth month, birth day, song duration)
+#     'james': (1, 19, 73),
+#     'jordan': (9, 27, 64),
+#     'kyle': (4, 5, 64),
+#     'ben': (1, 22, 64),
+#     'shamupete': (4, 12, 64),
+#     # TODO: fill out more birthdays
+# }
+
 
 winner_songs = {
     # Provides the song name, duration, and start second
@@ -159,18 +173,27 @@ async def determine_daily_winner():
             return
         winner_args = winner_songs[winner['name']]
         random_winner_args = random.choice(winner_args)
+        _, pacific_time = _get_current_time()
+        current_date = pacific_time.date()
+        # TODO: get these values from the `birthday_args` dictionary
+        if current_date.day == 19 and current_date.month == 1:
+            await play_song(voice_client, 'data/songs/happy_birthday_james.mp3', 73, 0, disconnect_after_song=False)
+            time.sleep(2)
         await play_song(voice_client, f'data/songs/{random_winner_args[0]}', random_winner_args[1], random_winner_args[2])
     else:
         print('not enough people in the vc')
 
+@bot.command()
+async def determine_daily_winner_backup(ctx):
+    await determine_daily_winner()
 
 @bot.command()
 async def disconnect(ctx):
     voice_client = bot.voice_clients[0]
     await voice_client.disconnect()
 
-async def determine_winner(*args):
 
+async def determine_winner(*args):
     # Select all rows from the points table
     leaderboard_query = f"""SELECT name, MIN(time) as 'time'
                             FROM (
@@ -187,13 +210,14 @@ async def determine_winner(*args):
     print(winner)
     return winner
 
-async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15):
+async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15, disconnect_after_song: bool = True):
     print(file_path)
     dropbox.download_file(file_path)
     voice_client.play(discord.FFmpegPCMAudio(file_path,  options=f'-ss {start_second}'))
     await asyncio.sleep(duration)
     voice_client.stop()
-    await voice_client.disconnect()
+    if disconnect_after_song:
+        await voice_client.disconnect()
 
 @determine_daily_winner.before_loop
 async def before_determine_daily_winner():
@@ -230,7 +254,8 @@ def upload():
 async def end_walk(ctx):
     global walk_ended
     if not walk_ended:
-        await ctx.send(f'Walk ended at {_get_current_time()}! Getting weekly leaderboard...')
+        current_time, _ = _get_current_time()
+        await ctx.send(f'Walk ended at {current_time}! Getting weekly leaderboard...')
         await update_points(ctx)
         walk_ended = True
 
@@ -372,8 +397,8 @@ async def on_voice_state_update(member, before, after):
     # if member.voice is not None and member.voice.self_mute:
     #     print(f'{member.name} is muted')
     #     return
-    current_time = _get_current_time()
-    pacific_time = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S.%f")
+    current_time, pacific_time = _get_current_time()
+    # pacific_time = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S.%f")
     walk_hour_condition = pacific_time.hour >= start_hour and pacific_time.hour < end_hour
 
     if walk_ended:
@@ -392,7 +417,7 @@ async def on_voice_state_update(member, before, after):
     if walk_hour_condition:
         if after.channel is not None and after.channel.name == voice_channel:
             # Get current time in UTC
-            join_time = _get_current_time()
+            join_time, _ = _get_current_time()
             append_to_database(member, after, join_time, joined=True)
             log_and_upload(member, join_time, True)
             await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym within the proper time frame.")
@@ -402,7 +427,7 @@ async def on_voice_state_update(member, before, after):
             # calculated_points = max(max_on_time_points - (late_time.total_seconds() / (walk_time_in_seconds / 2)) * 50, 0)
             # await member.send(f"You will earn {calculated_points} points. {'Congrats!' if calculated_points > 49 else 'Better luck next time!'}")
         if before.channel is not None and before.channel.name == voice_channel:
-            leave_time = _get_current_time()
+            leave_time, _ = _get_current_time()
             
             append_to_database(member, before, leave_time, joined=False)
             log_and_upload(member, leave_time, False)
@@ -423,7 +448,7 @@ def append_to_database(member, event, event_time, joined):
     c.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?, ?)", (member.name, member.id, event_time, event.channel.name, joined))
     conn.commit()
 
-def _get_current_time():
+def _get_current_time() -> Tuple[str, datetime]:
     utc_now = datetime.now(pytz.utc)
         
     # Convert to Pacific time
@@ -432,6 +457,7 @@ def _get_current_time():
         
     # Format the time
     join_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S.%f")
-    return join_time
+    print(pacific_time)
+    return join_time, pacific_time
 
 bot.run(bot_token)

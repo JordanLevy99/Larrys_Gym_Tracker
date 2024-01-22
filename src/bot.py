@@ -49,15 +49,15 @@ winner_hour = start_hour
 winner_minute = 8
 
 # TODO: integrate birthday_args into determine_daily_winner
-# birthday_args = {
-#     # Args are (birth month, birth day, song duration)
-#     'james': (1, 19, 73),
-#     'jordan': (9, 27, 64),
-#     'kyle': (4, 5, 64),
-#     'ben': (1, 22, 64),
-#     'shamupete': (4, 12, 64),
-#     # TODO: fill out more birthdays
-# }
+birthday_args = {
+    # (month, day): (name, link)
+    (1, 19): ('james', 'https://www.youtube.com/watch?v=jcZRsApNZwk'),
+    (9, 27): ('jordan', 'https://www.youtube.com/watch?v=E8Jx5jOXM9Y'),
+    (4, 5): ('kyle', 'https://www.youtube.com/watch?v=bujfHuKO-Vc'),
+    (1, 21): ('ben', 'https://www.youtube.com/watch?v=t5r1qIY0g2g'),
+    (4, 12): ('peter', 'https://www.youtube.com/watch?v=SsoIMucoHa4'),
+    (1, 27): ('mikal', 'https://www.youtube.com/watch?v=Hz8-5D2dmus'),
+}
 
 
 winner_songs = {
@@ -170,27 +170,41 @@ async def determine_daily_winner():
         winner = await determine_winner()
         if winner.empty:
             print('No winner found')
+            await voice_channel.connect()
             return
         winner_args = winner_songs[winner['name']]
         random_winner_args = random.choice(winner_args)
         _, pacific_time = _get_current_time()
         current_date = pacific_time.date()
         # TODO: get these values from the `birthday_args` dictionary
-        if current_date.day == 19 and current_date.month == 1:
-            await play_song(voice_client, 'data/songs/happy_birthday_james.mp3', 73, 0, disconnect_after_song=False)
+        try:
+            current_birthday = birthday_args[(current_date.month, current_date.day)]
+            birthday_name, birthday_link = current_birthday
+            duration = 73
+            if birthday_name == 'ben':
+                duration = 49
+            text_channel = bot.get_channel(text_channel_id)
+            await text_channel.send(f'Happy Birthday {birthday_name.capitalize()}!\n{birthday_link}')
+            await play_song(voice_client, f'data/songs/happy_birthday_{birthday_name}.mp3',
+                            duration, 0, disconnect_after_song=False)
+            
             time.sleep(2)
+        except KeyError:
+            pass
         await play_song(voice_client, f'data/songs/{random_winner_args[0]}', random_winner_args[1], random_winner_args[2])
     else:
         print('not enough people in the vc')
+
 
 @bot.command()
 async def determine_daily_winner_backup(ctx):
     await determine_daily_winner()
 
+
 @bot.command()
 async def disconnect(ctx):
     voice_client = bot.voice_clients[0]
-    await voice_client.disconnect()
+    await voice_client.disconnect(force=True)
 
 
 async def determine_winner(*args):
@@ -210,6 +224,7 @@ async def determine_winner(*args):
     print(winner)
     return winner
 
+
 async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15, disconnect_after_song: bool = True):
     print(file_path)
     dropbox.download_file(file_path)
@@ -218,6 +233,7 @@ async def play_song(voice_client, file_path: str, duration: int = 16, start_seco
     voice_client.stop()
     if disconnect_after_song:
         await voice_client.disconnect()
+
 
 @determine_daily_winner.before_loop
 async def before_determine_daily_winner():

@@ -155,6 +155,40 @@ async def copy_database(ctx, new_db_file: str):
     upload()
 
 
+@bot.command()
+async def determine_monthly_winner(ctx):
+    voice_channel = bot.get_channel(voice_channel_id)
+
+    if voice_channel and len(voice_channel.members) >= 1:
+        try:
+            voice_client = await voice_channel.connect()
+        except discord.errors.ClientException:
+            print(
+                f'Already connected to a voice channel.')
+        
+        voice_client = bot.voice_clients[0]
+        leaderboard_query = """
+            SELECT name, SUM(points_awarded) AS total_points
+            FROM points
+            WHERE day >= date('now', '-1 month')
+            GROUP BY name
+            ORDER BY total_points DESC
+            LIMIT 1
+        """
+        leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
+        winner = leaderboard_df.iloc[0]
+        if winner.empty:
+            print('No winner found')
+            await voice_channel.disconnect()
+            return
+        # winner_args = winner_songs[winner['name']]
+        text_channel = bot.get_channel(text_channel_id)
+
+        await text_channel.send(f"Congrats to dinkstar for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
+        await play_song(voice_client, f'data/songs/speech.wav', 5, 0, False)
+        await play_song(voice_client, f'data/songs/all_of_the_lights.mp3', 14, 0, True)
+
+
 @tasks.loop(hours=24)
 async def determine_daily_winner():
     voice_channel = bot.get_channel(voice_channel_id)
@@ -170,7 +204,7 @@ async def determine_daily_winner():
         winner = await determine_winner()
         if winner.empty:
             print('No winner found')
-            await voice_channel.connect()
+            await voice_channel.disconnect()
             return
         winner_args = winner_songs[winner['name']]
         random_winner_args = random.choice(winner_args)
@@ -245,6 +279,17 @@ async def before_determine_daily_winner():
     print('Waiting until', target_time)
     print(f'wait time: {(target_time - now).total_seconds()}')
     await asyncio.sleep((target_time - now).total_seconds())
+
+# @determine_daily_winner.before_loop
+# async def before_determine_daily_winner():
+#     now = datetime.now()
+#     now = now.astimezone(pytz.timezone('US/Pacific'))
+#     target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute, second=0, microsecond=0)
+#     if now > target_time:
+#         target_time += timedelta(days=1)
+#     print('Waiting until', target_time)
+#     print(f'wait time: {(target_time - now).total_seconds()}')
+#     await asyncio.sleep((target_time - now).total_seconds())
 
 
 @bot.command()

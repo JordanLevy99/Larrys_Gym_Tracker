@@ -46,7 +46,7 @@ max_duration_points = 50
 walk_ended = False
 
 winner_hour = start_hour
-winner_minute = 8
+winner_minute = 9
 
 # TODO: integrate birthday_args into determine_daily_winner
 birthday_args = {
@@ -155,38 +155,61 @@ async def copy_database(ctx, new_db_file: str):
     upload()
 
 
-@bot.command()
-async def determine_monthly_winner(ctx):
-    voice_channel = bot.get_channel(voice_channel_id)
+@tasks.loop(hours=24)
+async def determine_monthly_winner():
+    _, pacific_time = _get_current_time()
+    if pacific_time.day == 1:
+        voice_channel = bot.get_channel(voice_channel_id)
 
-    if voice_channel and len(voice_channel.members) >= 1:
-        try:
-            voice_client = await voice_channel.connect()
-        except discord.errors.ClientException:
-            print(
-                f'Already connected to a voice channel.')
-        
-        voice_client = bot.voice_clients[0]
-        leaderboard_query = """
-            SELECT name, SUM(points_awarded) AS total_points
-            FROM points
-            WHERE day >= date('now', '-1 month')
-            GROUP BY name
-            ORDER BY total_points DESC
-            LIMIT 1
-        """
-        leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
-        winner = leaderboard_df.iloc[0]
-        if winner.empty:
-            print('No winner found')
-            await voice_channel.disconnect()
-            return
-        # winner_args = winner_songs[winner['name']]
-        text_channel = bot.get_channel(text_channel_id)
+        if voice_channel and len(voice_channel.members) >= 1:
+            try:
+                voice_client = await voice_channel.connect()
+            except discord.errors.ClientException:
+                print(
+                    f'Already connected to a voice channel.')
+            
+            voice_client = bot.voice_clients[0]
+            leaderboard_query = """
+                SELECT name, SUM(points_awarded) AS total_points
+                FROM points
+                WHERE day >= date('now', '-1 month')
+                GROUP BY name
+                ORDER BY total_points DESC
+                LIMIT 1
+            """
+            leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
+            winner = leaderboard_df.iloc[0]
+            if winner.empty:
+                print('No winner found')
+                await voice_channel.disconnect()
+                return
+            # winner_args = winner_songs[winner['name']]
+            text_channel = bot.get_channel(text_channel_id)
 
-        await text_channel.send(f"Congrats to dinkstar for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
-        await play_song(voice_client, f'data/songs/speech.wav', 5, 0, False)
-        await play_song(voice_client, f'data/songs/all_of_the_lights.mp3', 14, 0, True)
+            await text_channel.send(f"Congrats to dinkstar for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
+            await play_song(voice_client, f'data/songs/speech.wav', 5, 0, False)
+            await play_song(voice_client, f'data/songs/all_of_the_lights.mp3', 14, 0, True)
+
+
+@tasks.loop(hours=24)
+async def draw_card():
+    suits = ['♠', '♥', '♦', '♣']
+    ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
+    
+    # # Create a deck of cards
+    # deck = [f'{rank}{suit}' for suit in suits for rank in ranks]
+    
+    # # Draw a random card from the deck
+    # card = random.choice(deck)
+
+    # Unicode for playing cards
+    suit = random.choice(suits)
+    rank = random.choice(ranks)
+    suit_str =  f"\_\_\_\_\_\n|{suit}      |\n|    {rank}    |\n|      {suit}|\n\_\_\_\_\_"
+
+    text_channel = bot.get_channel(text_channel_id)
+    await text_channel.send("Card of the day is:\n"+suit_str)
+
 
 
 @tasks.loop(hours=24)
@@ -280,6 +303,30 @@ async def before_determine_daily_winner():
     print(f'wait time: {(target_time - now).total_seconds()}')
     await asyncio.sleep((target_time - now).total_seconds())
 
+
+@draw_card.before_loop
+async def before_draw_card():
+    now = datetime.now()
+    now = now.astimezone(pytz.timezone('US/Pacific'))
+    target_time = datetime.replace(now, hour=6, minute=45, second=0, microsecond=0)
+    if now > target_time:
+        target_time += timedelta(days=1)
+    print('Drawing card at', target_time)
+    print(f'wait time for draw card: {(target_time - now).total_seconds()}')
+    await asyncio.sleep((target_time - now).total_seconds())
+
+
+@determine_monthly_winner.before_loop
+async def before_determine_monthly_winner():
+    now = datetime.now()
+    now = now.astimezone(pytz.timezone('US/Pacific'))
+    target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute-1, second=0, microsecond=0)
+    if now > target_time:
+        target_time += timedelta(days=1)
+    print('Monthly winner determined at', target_time)
+    print(f'wait time for monthly winner check: {(target_time - now).total_seconds()}')
+    await asyncio.sleep((target_time - now).total_seconds())
+
 # @determine_daily_winner.before_loop
 # async def before_determine_daily_winner():
 #     now = datetime.now()
@@ -306,6 +353,8 @@ async def get_id(ctx):
 async def on_ready():
     print(f'We have logged in as {bot.user}')
     determine_daily_winner.start()
+    determine_monthly_winner.start()
+    draw_card.start()
 
 def upload():
     dropbox.upload_file(db_file)

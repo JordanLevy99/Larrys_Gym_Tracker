@@ -46,7 +46,7 @@ max_duration_points = 50
 walk_ended = False
 
 winner_hour = start_hour
-winner_minute = 9
+winner_minute = 8
 
 # TODO: integrate birthday_args into determine_daily_winner
 birthday_args = {
@@ -64,7 +64,8 @@ winner_songs = {
     # Provides the song name, duration, and start second
     'jam4bears': [('rocky_balboa.mp3', 15, 0),
                   ('walk_it_talk_it.mp3', 45, 40)],
-    'bemno': [('wanna_be_free.mp3', 40, 0)],
+    'bemno': [('wanna_be_free.mp3', 40, 0),
+              ('war_fanfare.mp3', 15, 95),],
     'dinkstar': [('chug_jug_with_you.mp3', 16, 1),
                  ('jesus_forgive_me_i_am_a_thot.mp3', 23, 122),
                  ('thot_tactics.mp3', 17, 109),

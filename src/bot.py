@@ -17,20 +17,32 @@ from discord.ext import tasks, commands
 import discord
 import sqlite3
 
-
 from backend import Dropbox
 import shutil
 import asyncio
 import random
+
 # Constants
 db_file = 'larrys_database.db'
 # db_file = 'test.db'
 text_channel = 'larrys-gym-logger'
 text_channel_id = 1193971930794045544
 voice_channel_id = 1143972564616626209
-### TODO: uncomment below two lines to test on test server ###
-# text_channel_id = 1193977937955913879
-# voice_channel_id = 1191159993861414922
+
+
+def parse_args():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--test', action='store_true', help='Run the bot in test mode')
+    return parser.parse_args()
+
+
+args = parse_args()
+
+if args.test:
+    print('Running in test mode...')
+    text_channel_id = 1193977937955913879
+    voice_channel_id = 1191159993861414922
 current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
 voice_channel = 'Larry\'s Gym'
 verbose = True
@@ -48,7 +60,6 @@ walk_ended = False
 winner_hour = start_hour
 winner_minute = 8
 
-# TODO: integrate birthday_args into determine_daily_winner
 birthday_args = {
     # (month, day): (name, link)
     (1, 19): ('james', 'https://www.youtube.com/watch?v=jcZRsApNZwk'),
@@ -59,14 +70,13 @@ birthday_args = {
     (1, 27): ('mikal', 'https://www.youtube.com/watch?v=Hz8-5D2dmus'),
 }
 
-
 winner_songs = {
     # Provides the song name, duration, and start second
     'jam4bears': [('rocky_balboa.mp3', 15, 0),
                   ('walk_it_talk_it.mp3', 45, 40)],
     'bemno': [('wanna_be_free.mp3', 40, 0),
-              ('war_fanfare.mp3', 15, 95),],
-    'dinkstar': [('chug_jug_with_you.mp3', 16, 1),
+              ('war_fanfare.mp3', 15, 95), ],
+    'dinkstar': [('chug_jug_with_you.mp3', 32, 1),
                  ('jesus_forgive_me_i_am_a_thot.mp3', 23, 122),
                  ('thot_tactics.mp3', 17, 109),
                  ('jump_out_the_house.mp3', 12, 7)],
@@ -120,6 +130,7 @@ def connect_to_database():
     c.execute('''CREATE TABLE IF NOT EXISTS points
                 (name text, id text, points_awarded float, day datetime, type text)''')
 
+
 def download():
     global conn, c
     print(db_file)
@@ -134,8 +145,10 @@ def download():
     print(df.tail())
     df.to_sql(db_file, conn, if_exists='replace', index=False)
 
+
 connect_to_database()
 download()
+
 
 @bot.command()
 async def start_time(ctx, start_time: int):
@@ -168,7 +181,7 @@ async def determine_monthly_winner():
             except discord.errors.ClientException:
                 print(
                     f'Already connected to a voice channel.')
-            
+
             voice_client = bot.voice_clients[0]
             leaderboard_query = """
                 SELECT name, SUM(points_awarded) AS total_points
@@ -187,7 +200,8 @@ async def determine_monthly_winner():
             # winner_args = winner_songs[winner['name']]
             text_channel = bot.get_channel(text_channel_id)
 
-            await text_channel.send(f"Congrats to dinkstar for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
+            await text_channel.send(
+                f"Congrats to dinkstar for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
             await play_song(voice_client, f'data/songs/speech.wav', 5, 0, False)
             await play_song(voice_client, f'data/songs/all_of_the_lights.mp3', 14, 0, True)
 
@@ -196,21 +210,20 @@ async def determine_monthly_winner():
 async def draw_card():
     suits = ['♠', '♥', '♦', '♣']
     ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-    
+
     # # Create a deck of cards
     # deck = [f'{rank}{suit}' for suit in suits for rank in ranks]
-    
+
     # # Draw a random card from the deck
     # card = random.choice(deck)
 
     # Unicode for playing cards
     suit = random.choice(suits)
     rank = random.choice(ranks)
-    suit_str =  f"\_\_\_\_\_\n|{suit}      |\n|    {rank}    |\n|      {suit}|\n\_\_\_\_\_"
+    suit_str = f"\_\_\_\_\_\n|{suit}      |\n|    {rank}    |\n|      {suit}|\n\_\_\_\_\_"
 
     text_channel = bot.get_channel(text_channel_id)
-    await text_channel.send("Card of the day is:\n"+suit_str)
-
+    await text_channel.send("Card of the day is:\n" + suit_str)
 
 
 @tasks.loop(hours=24)
@@ -223,7 +236,7 @@ async def determine_daily_winner():
         except discord.errors.ClientException:
             print(
                 f'Already connected to a voice channel.')
-        
+
         voice_client = bot.voice_clients[0]
         winner = await determine_winner()
         if winner.empty:
@@ -245,11 +258,12 @@ async def determine_daily_winner():
             await text_channel.send(f'Happy Birthday {birthday_name.capitalize()}!\n{birthday_link}')
             await play_song(voice_client, f'data/songs/happy_birthday_{birthday_name}.mp3',
                             duration, 0, disconnect_after_song=False)
-            
+
             time.sleep(2)
         except KeyError:
             pass
-        await play_song(voice_client, f'data/songs/{random_winner_args[0]}', random_winner_args[1], random_winner_args[2])
+        await play_song(voice_client, f'data/songs/{random_winner_args[0]}', random_winner_args[1],
+                        random_winner_args[2])
     else:
         print('not enough people in the vc')
 
@@ -283,10 +297,11 @@ async def determine_winner(*args):
     return winner
 
 
-async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15, disconnect_after_song: bool = True):
+async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15,
+                    disconnect_after_song: bool = True):
     print(file_path)
     dropbox.download_file(file_path)
-    voice_client.play(discord.FFmpegPCMAudio(file_path,  options=f'-ss {start_second}'))
+    voice_client.play(discord.FFmpegPCMAudio(file_path, options=f'-ss {start_second}'))
     await asyncio.sleep(duration)
     voice_client.stop()
     if disconnect_after_song:
@@ -321,12 +336,13 @@ async def before_draw_card():
 async def before_determine_monthly_winner():
     now = datetime.now()
     now = now.astimezone(pytz.timezone('US/Pacific'))
-    target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute-1, second=0, microsecond=0)
+    target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute - 1, second=0, microsecond=0)
     if now > target_time:
         target_time += timedelta(days=1)
     print('Monthly winner determined at', target_time)
     print(f'wait time for monthly winner check: {(target_time - now).total_seconds()}')
     await asyncio.sleep((target_time - now).total_seconds())
+
 
 # @determine_daily_winner.before_loop
 # async def before_determine_daily_winner():
@@ -350,12 +366,14 @@ async def get_id(ctx):
     channel_id = channel.id
     print(f'The channel id for {voice_channel} is {channel_id}')
 
+
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
     determine_daily_winner.start()
     determine_monthly_winner.start()
     draw_card.start()
+
 
 def upload():
     dropbox.upload_file(db_file)
@@ -366,8 +384,7 @@ async def end_walk(ctx):
     global walk_ended
     if not walk_ended:
         current_time, _ = _get_current_time()
-        await ctx.send(f'Walk ended at {current_time}! Getting weekly leaderboard...')
-        await update_points(ctx)
+        await update_points(ctx, current_time)
         walk_ended = True
 
 
@@ -377,6 +394,7 @@ async def drop_points(ctx):
     conn.commit()
     upload()
 
+
 @bot.command()
 async def delete_all_points(ctx):
     c.execute("DELETE FROM points")
@@ -384,20 +402,26 @@ async def delete_all_points(ctx):
     upload()
     # await ctx.send(f'Dropped points table...')
 
-async def update_points(ctx):
+
+async def update_points(ctx, current_time):
     # Groupby name and id, extract day from date and groupby day, subtract max and min time to get duration
     # Divide duration by walk duration to get points
-    users_df = pd.read_sql_query("""
+    voice_log_df = pd.read_sql_query("""
                             SELECT * 
                             FROM voice_log""", conn)
-    print('users df at first:\n',users_df)
-    users_df['time'] = users_df['time'].astype('datetime64[ns]')
-    users_df['day'] = users_df['time'].dt.date
-    current_day = users_df['day'].max()
-    users_df = users_df.loc[users_df['day'] == current_day]
-    print('users df after filtering:\n',users_df)
-    users_durations = users_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
-    calculate_points(users_df, users_durations)
+    voice_log_df['time'] = voice_log_df['time'].astype('datetime64[ns]')
+    voice_log_df['day'] = voice_log_df['time'].dt.date
+    current_day = datetime.now(pytz.timezone('US/Pacific')).date()
+    latest_voice_log_day = voice_log_df['day'].max()
+    if current_day != latest_voice_log_day or args.test:
+        await ctx.send(f'No one has joined the walk today. Bad !end_walk command registered. 500 social credit will '
+                       f'be deducted from `{ctx.author.name}`.')
+        return
+    await ctx.send(f'Walk ended at {current_time}! Getting weekly leaderboard...')
+
+    daily_voice_log_df = voice_log_df.loc[voice_log_df['day'] == current_day]
+    users_durations = daily_voice_log_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
+    calculate_points(daily_voice_log_df, users_durations)
     print(pd.read_sql_query("""SELECT * FROM points""", conn).tail())
     await leaderboard(ctx, 'WEEKLY')
     await ctx.send('Getting Today\'s On Time Leaderboard')
@@ -407,12 +431,11 @@ async def update_points(ctx):
 
 
 
-
-
 @bot.command()
 async def download_db(ctx):
     download()
     # await ctx.send(f'Downloaded {db_file} from Google Drive!')
+
 
 @bot.command()
 async def upload_db(ctx):
@@ -421,14 +444,13 @@ async def upload_db(ctx):
     # await ctx.send(f'Uploaded {db_file} to Google Drive!')
 
 
-
 @bot.command()
 async def leaderboard(ctx, *args):
     query = ' '.join(args)
     role = discord.utils.get(ctx.guild.roles, name='Walker')
     # Select all rows from the points table
     points_column, time_filter, type_filter = _process_query(query)
-    
+
     points_column = f'{points_column}' if points_column else 'total'
     print(points_column, time_filter, type_filter)
     leaderboard_query = f"""SELECT name, SUM(points_awarded) as '{points_column}'
@@ -446,15 +468,16 @@ async def leaderboard(ctx, *args):
         leaderboard_series = pd.Series(dict(zip([member.name for member in role.members], [0] * len(role.members))))
         leaderboard_series.name = points_column
         leaderboard_df = leaderboard_series.to_frame()
-    leaderboard_df[points_column] = leaderboard_df[points_column].round(2) 
+    leaderboard_df[points_column] = leaderboard_df[points_column].round(2)
     # Convert the leaderboard to a table with borders
-    leaderboard_table = tabulate(leaderboard_df.sort_values(by=points_column, ascending=False).reset_index(drop=True), 
-                                 headers='keys', 
-                                 showindex=False, 
+    leaderboard_table = tabulate(leaderboard_df.sort_values(by=points_column, ascending=False).reset_index(drop=True),
+                                 headers='keys',
+                                 showindex=False,
                                  tablefmt='simple_grid')
-    print(f'{points_column.capitalize()} Leaderboard:\n',leaderboard_df)
-    
-    await ctx.send(f'```{leaderboard_table}```')    
+    print(f'{points_column.capitalize()} Leaderboard:\n', leaderboard_df)
+
+    await ctx.send(f'```{leaderboard_table}```')
+
 
 def _process_query(query, type_filter=''):
     query = query.strip().upper()
@@ -475,19 +498,23 @@ def _process_query(query, type_filter=''):
     elif 'YEAR' in query:
         return 'yearly', f"""WHERE day >= "{datetime.now().date().replace(month=1, day=1)}" """, type_filter
 
+
 def calculate_points(users_df, users_durations):
     print(users_durations)
     walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
     duration_points = (users_durations.dt.total_seconds() / walk_time_in_seconds) * 50
-    duration_points.loc[duration_points>max_duration_points] = max_duration_points
-    late_time = (users_df.groupby('id').apply(lambda user: user['time'].min() - user['time'].min().replace(hour=start_hour, minute=0, second=0, microsecond=0)))
+    duration_points.loc[duration_points > max_duration_points] = max_duration_points
+    late_time = (users_df.groupby('id').apply(
+        lambda user: user['time'].min() - user['time'].min().replace(hour=start_hour, minute=0, second=0,
+                                                                     microsecond=0)))
     on_time_points = max_on_time_points - (late_time.dt.total_seconds() / (walk_time_in_seconds / 2)) * 50
-    on_time_points.loc[on_time_points<0] = 0
+    on_time_points.loc[on_time_points < 0] = 0
     # print('User Durations:',users_durations)
     day = users_df['day'].max()
     users_df = users_df[['name', 'id', 'day']].drop_duplicates()
     process_points_df(users_df, on_time_points, 'ON TIME', day)
-    process_points_df(users_df, duration_points, 'DURATION', day)    
+    process_points_df(users_df, duration_points, 'DURATION', day)
+
 
 def process_points_df(users_df, points_df, points_type, day):
     points_df.name = 'points_awarded'
@@ -500,6 +527,7 @@ def process_points_df(users_df, points_df, points_type, day):
     points_df = points_df[['name', 'id', 'points_awarded', 'day', 'type']]
     points_df.to_sql('points', conn, if_exists='append', index=False)
     return points_df
+
 
 @bot.event
 async def on_voice_state_update(member, before, after):
@@ -539,36 +567,43 @@ async def on_voice_state_update(member, before, after):
             # await member.send(f"You will earn {calculated_points} points. {'Congrats!' if calculated_points > 49 else 'Better luck next time!'}")
         if before.channel is not None and before.channel.name == voice_channel:
             leave_time, _ = _get_current_time()
-            
+
             append_to_database(member, before, leave_time, joined=False)
             log_and_upload(member, leave_time, False)
     elif after.channel is not None and after.channel.name == voice_channel:
-        await member.send(f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between {start_hour}:00 and {end_hour}:00 Pacific time.")
+        await member.send(
+            f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between {start_hour}:00 and {end_hour}:00 Pacific time.")
+
 
 def log_and_upload(member, event_time, joining):
     if verbose:
         log_data(member, event_time, joining)
     upload()
 
+
 def log_data(member, event_time, joining):
     leaving_str = "leaving " if not joining else ""
     print(f'Logged user {member.name} {leaving_str}at {event_time}...')
     print(pd.read_sql_query("SELECT * FROM voice_log", conn).tail())
 
+
 def append_to_database(member, event, event_time, joined):
-    c.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?, ?)", (member.name, member.id, event_time, event.channel.name, joined))
+    c.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?, ?)",
+              (member.name, member.id, event_time, event.channel.name, joined))
     conn.commit()
+
 
 def _get_current_time() -> Tuple[str, datetime]:
     utc_now = datetime.now(pytz.utc)
-        
+
     # Convert to Pacific time
     pacific_tz = pytz.timezone('US/Pacific')
     pacific_time = utc_now.astimezone(pacific_tz)
-        
+
     # Format the time
     join_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S.%f")
     print(pacific_time)
     return join_time, pacific_time
+
 
 bot.run(bot_token)

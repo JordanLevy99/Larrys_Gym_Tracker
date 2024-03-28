@@ -1,117 +1,53 @@
 from datetime import datetime
-import os
-from pathlib import Path
 import time
 from typing import Tuple
 from dotenv import load_dotenv
-import pandas as pd
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
 import pytz
 import pandas as pd
-from discord import Permissions
 from datetime import timedelta
 from tabulate import tabulate
-from discord import Embed
-from discord.ext import tasks, commands
+from discord.ext import tasks
 import discord
 import sqlite3
 
-from backend import Dropbox
 import shutil
 import asyncio
 import random
 
-# Constants
-db_file = 'larrys_database.db'
-# db_file = 'test.db'
-text_channel = 'larrys-gym-logger'
-text_channel_id = 1193971930794045544
-voice_channel_id = 1143972564616626209
 
+import os
 
-def parse_args():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--test', action='store_true', help='Run the bot in test mode')
-    return parser.parse_args()
+import discord
+from discord.ext import commands
+from dotenv import load_dotenv
 
+from cli.args import parse_args
+from src.backend import Dropbox
+from src.types import BotConstants, WalkArgs, Songs
 
+bot_constants = BotConstants()
 args = parse_args()
+current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=bot_constants.TEXT_CHANNEL)
+verbose = True
+walk_constants = WalkArgs()
+songs = Songs()
+intents = discord.Intents.default()
+bot = commands.Bot(command_prefix='!', intents=intents)
 
 if args.test:
     print('Running in test mode...')
-    text_channel_id = 1193977937955913879
-    voice_channel_id = 1191159993861414922
-current_text_channel = lambda member: discord.utils.get(member.guild.threads, name=text_channel)
-voice_channel = 'Larry\'s Gym'
-verbose = True
+    bot_constants.TEXT_CHANNEL_ID = 1193977937955913879
+    bot_constants.VOICE_CHANNEL_ID = 1191159993861414922
 
-# Walking constants
-# global start_hour, end_hour
-
-start_hour = 7
-end_hour = 9
-length_of_walk_in_minutes = 45
-max_on_time_points = 50
-max_duration_points = 50
-walk_ended = False
-
-winner_hour = start_hour
-winner_minute = 8
-
-birthday_args = {
-    # (month, day): (name, link)
-    (1, 19): ('james', 'https://www.youtube.com/watch?v=jcZRsApNZwk'),
-    (9, 27): ('jordan', 'https://www.youtube.com/watch?v=E8Jx5jOXM9Y'),
-    (4, 5): ('kyle', 'https://www.youtube.com/watch?v=bujfHuKO-Vc'),
-    (1, 22): ('ben', 'https://www.youtube.com/watch?v=t5r1qIY0g2g'),
-    (4, 12): ('peter', 'https://www.youtube.com/watch?v=SsoIMucoHa4'),
-    (1, 27): ('mikal', 'https://www.youtube.com/watch?v=Hz8-5D2dmus'),
-}
-
-winner_songs = {
-    # Provides the song name, duration, and start second
-    'jam4bears': [('rocky_balboa.mp3', 15, 0),
-                  ('walk_it_talk_it.mp3', 45, 40)],
-    'bemno': [('wanna_be_free.mp3', 40, 0),
-              ('war_fanfare.mp3', 15, 95), ],
-    'dinkstar': [('chug_jug_with_you.mp3', 32, 1),
-                 ('jesus_forgive_me_i_am_a_thot.mp3', 23, 122),
-                 ('thot_tactics.mp3', 17, 109),
-                 ('jump_out_the_house.mp3', 12, 7)],
-    'Larry\'s Gym Bot': [('larrys_song.mp3', 26, 0)],
-    'kyboydigital': [('shenanigans.mp3', 15, 13)],
-    'shmeg.': [('chum_drum_bedrum.mp3', 67, 26),
-               ('whats_new_scooby_doo.mp3', 64, 0),
-               ('tnt_dynamite.mp3', 64, 18),
-               ('HEYYEYAAEYAAAEYAEYAA.mp3', 84, 0),
-               ('hyrule_field.mp3', 50, 175),
-               ('tunak_tunak.mp3', 76, 26),
-               ('vinland_saga.mp3', 75, 14),
-               ('german_soldiers_song.mp3', 37, 0),
-               ('BED_INTRUDER_SONG.mp3', 76, 0),
-               ('Medal_Of_Honor_European_Assault.mp3', 75, 77),
-               ('Klendathu_Drop.mp3', 80, 0),
-               ('The_Black_Pearl.mp3', 64, 30),
-               ('Rohan_and_Gondor_Themes.mp3', 62, 222),
-               ('The_Ecstasy_of_Gold.mp3', 107, 0),
-               ('Fergie_sings_the_national_anthem.mp3', 62, 77)],
-    'shamupete': [('Bloopin.mp3', 81, 0),
-                  ('chocolate_rain.mp3', 60, 0)]
-}
 # Load the .env file
 load_dotenv()
+bot_constants.TOKEN = os.getenv('BOT_TOKEN')
 
 # permissions = Permissions(0x00000400 | 0x00000800 | 0x00800000)
 # Get the bot token
-bot_token = os.getenv('BOT_TOKEN')
 
-intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-
-bot = commands.Bot(command_prefix='!', intents=intents)
 
 dropbox = Dropbox()
 
@@ -119,7 +55,7 @@ dropbox = Dropbox()
 def connect_to_database():
     global conn, c
     # Connect to the SQLite database
-    conn = sqlite3.connect(db_file)
+    conn = sqlite3.connect(bot_constants.DB_FILE)
     c = conn.cursor()
 
     # Create table if it doesn't exist
@@ -133,17 +69,17 @@ def connect_to_database():
 
 def download():
     global conn, c
-    print(db_file)
-    dropbox.download_file(db_file)
+    print(bot_constants.DB_FILE)
+    dropbox.download_file(bot_constants.DB_FILE)
 
     # Read the file into a pandas DataFrame
-    conn = sqlite3.connect(db_file)
+    conn = sqlite3.connect(bot_constants.DB_FILE)
     c = conn.cursor()
     df = pd.read_sql_query("SELECT * FROM voice_log", conn)
 
     # Print the last five entries of the DataFrame
     print(df.tail())
-    df.to_sql(db_file, conn, if_exists='replace', index=False)
+    df.to_sql(bot_constants.DB_FILE, conn, if_exists='replace', index=False)
 
 
 connect_to_database()
@@ -152,7 +88,7 @@ download()
 
 @bot.command()
 async def start_time(ctx, start_time: int):
-    global start_hour, end_hour, winner_hour
+    # global start_hour, end_hour, winner_hour
     start_hour = start_time
     winner_hour = start_time
     end_hour = start_time + 2
@@ -161,10 +97,9 @@ async def start_time(ctx, start_time: int):
 
 @bot.command()
 async def copy_database(ctx, new_db_file: str):
-    global db_file
-    shutil.copyfile(db_file, new_db_file)
-    db_file = new_db_file
-    await ctx.send(f'Database file set to {db_file}')
+    shutil.copyfile(bot_constants.DB_FILE, new_db_file)
+    bot_constants.DB_FILE = new_db_file
+    await ctx.send(f'Database file set to {bot_constants.DB_FILE}')
     connect_to_database()
     upload()
 
@@ -173,7 +108,7 @@ async def copy_database(ctx, new_db_file: str):
 async def determine_monthly_winner():
     _, pacific_time = _get_current_time()
     if pacific_time.day == 1:
-        voice_channel = bot.get_channel(voice_channel_id)
+        voice_channel = bot.get_channel(bot_constants.VOICE_CHANNEL_ID)
 
         if voice_channel and len(voice_channel.members) >= 1:
             try:
@@ -198,7 +133,7 @@ async def determine_monthly_winner():
                 await voice_channel.disconnect()
                 return
             # winner_args = winner_songs[winner['name']]
-            text_channel = bot.get_channel(text_channel_id)
+            text_channel = bot.get_channel(bot_constants.TEXT_CHANNEL_ID)
 
             await text_channel.send(
                 f"Congrats to dinkstar for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
@@ -222,13 +157,13 @@ async def draw_card():
     rank = random.choice(ranks)
     suit_str = f"\_\_\_\_\_\n|{suit}      |\n|    {rank}    |\n|      {suit}|\n\_\_\_\_\_"
 
-    text_channel = bot.get_channel(text_channel_id)
+    text_channel = bot.get_channel(bot_constants.TEXT_CHANNEL_ID)
     await text_channel.send("Card of the day is:\n" + suit_str)
 
 
 @tasks.loop(hours=24)
 async def determine_daily_winner():
-    voice_channel = bot.get_channel(voice_channel_id)
+    voice_channel = bot.get_channel(bot_constants.VOICE_CHANNEL_ID)
 
     if voice_channel and len(voice_channel.members) >= 1:
         try:
@@ -243,18 +178,18 @@ async def determine_daily_winner():
             print('No winner found')
             await voice_channel.disconnect()
             return
-        winner_args = winner_songs[winner['name']]
+        winner_args = songs.WINNER[winner['name']]
         random_winner_args = random.choice(winner_args)
         _, pacific_time = _get_current_time()
         current_date = pacific_time.date()
         # TODO: get these values from the `birthday_args` dictionary
         try:
-            current_birthday = birthday_args[(current_date.month, current_date.day)]
+            current_birthday = songs.BIRTHDAY[(current_date.month, current_date.day)]
             birthday_name, birthday_link = current_birthday
             duration = 73
             if birthday_name == 'ben':
                 duration = 49
-            text_channel = bot.get_channel(text_channel_id)
+            text_channel = bot.get_channel(bot_constants.TEXT_CHANNEL_ID)
             await text_channel.send(f'Happy Birthday {birthday_name.capitalize()}!\n{birthday_link}')
             await play_song(voice_client, f'data/songs/happy_birthday_{birthday_name}.mp3',
                             duration, 0, disconnect_after_song=False)
@@ -312,7 +247,7 @@ async def play_song(voice_client, file_path: str, duration: int = 16, start_seco
 async def before_determine_daily_winner():
     now = datetime.now()
     now = now.astimezone(pytz.timezone('US/Pacific'))
-    target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute, second=0, microsecond=0)
+    target_time = datetime.replace(now, hour=walk_constants.WINNER_HOUR, minute=walk_constants.WINNER_MINUTE, second=0, microsecond=0)
     if now > target_time:
         target_time += timedelta(days=1)
     print('Waiting until', target_time)
@@ -336,7 +271,7 @@ async def before_draw_card():
 async def before_determine_monthly_winner():
     now = datetime.now()
     now = now.astimezone(pytz.timezone('US/Pacific'))
-    target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute - 1, second=0, microsecond=0)
+    target_time = datetime.replace(now, hour=walk_constants.WINNER_HOUR, minute=walk_constants.WINNER_MINUTE - 1, second=0, microsecond=0)
     if now > target_time:
         target_time += timedelta(days=1)
     print('Monthly winner determined at', target_time)
@@ -344,27 +279,15 @@ async def before_determine_monthly_winner():
     await asyncio.sleep((target_time - now).total_seconds())
 
 
-# @determine_daily_winner.before_loop
-# async def before_determine_daily_winner():
-#     now = datetime.now()
-#     now = now.astimezone(pytz.timezone('US/Pacific'))
-#     target_time = datetime.replace(now, hour=winner_hour, minute=winner_minute, second=0, microsecond=0)
-#     if now > target_time:
-#         target_time += timedelta(days=1)
-#     print('Waiting until', target_time)
-#     print(f'wait time: {(target_time - now).total_seconds()}')
-#     await asyncio.sleep((target_time - now).total_seconds())
-
-
 @bot.command()
 async def get_id(ctx):
     # await ctx.send(
-    channel = discord.utils.get(ctx.guild.channels, name=text_channel)
+    channel = discord.utils.get(ctx.guild.channels, name=bot_constants.TEXT_CHANNEL)
     channel_id = channel.id
-    print(f'The channel id for {text_channel} is {channel_id}')
-    channel = discord.utils.get(ctx.guild.channels, name=voice_channel)
+    print(f'The channel id for {bot_constants.TEXT_CHANNEL} is {channel_id}')
+    channel = discord.utils.get(ctx.guild.channels, name=bot_constants.VOICE_CHANNEL)
     channel_id = channel.id
-    print(f'The channel id for {voice_channel} is {channel_id}')
+    print(f'The channel id for {bot_constants.VOICE_CHANNEL} is {channel_id}')
 
 
 @bot.event
@@ -376,16 +299,15 @@ async def on_ready():
 
 
 def upload():
-    dropbox.upload_file(db_file)
+    dropbox.upload_file(bot_constants.DB_FILE)
 
 
 @bot.command()
 async def end_walk(ctx):
-    global walk_ended
-    if not walk_ended:
+    if not walk_constants.WALK_ENDED:
         current_time, _ = _get_current_time()
         await update_points(ctx, current_time)
-        walk_ended = True
+        walk_constants.WALK_ENDED = True
 
 
 @bot.command()
@@ -429,19 +351,17 @@ async def update_points(ctx, current_time):
     upload()
 
 
-
-
 @bot.command()
 async def download_db(ctx):
     download()
-    # await ctx.send(f'Downloaded {db_file} from Google Drive!')
+    # await ctx.send(f'Downloaded {bot_constants.DB_FILE} from Google Drive!')
 
 
 @bot.command()
 async def upload_db(ctx):
     upload()
-    print(f'Uploaded {db_file} to Dropbox!')
-    # await ctx.send(f'Uploaded {db_file} to Google Drive!')
+    print(f'Uploaded {bot_constants.DB_FILE} to Dropbox!')
+    # await ctx.send(f'Uploaded {bot_constants.DB_FILE} to Google Drive!')
 
 
 @bot.command()
@@ -554,7 +474,7 @@ async def on_voice_state_update(member, before, after):
 
     # Check if the time is between 7am and 9am in Pacific timezone
     if walk_hour_condition:
-        if after.channel is not None and after.channel.name == voice_channel:
+        if after.channel is not None and after.channel.name == bot_constants.VOICE_CHANNEL:
             # Get current time in UTC
             join_time, _ = _get_current_time()
             append_to_database(member, after, join_time, joined=True)
@@ -565,12 +485,12 @@ async def on_voice_state_update(member, before, after):
             # walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
             # calculated_points = max(max_on_time_points - (late_time.total_seconds() / (walk_time_in_seconds / 2)) * 50, 0)
             # await member.send(f"You will earn {calculated_points} points. {'Congrats!' if calculated_points > 49 else 'Better luck next time!'}")
-        if before.channel is not None and before.channel.name == voice_channel:
+        if before.channel is not None and before.channel.name == bot_constants.VOICE_CHANNEL:
             leave_time, _ = _get_current_time()
 
             append_to_database(member, before, leave_time, joined=False)
             log_and_upload(member, leave_time, False)
-    elif after.channel is not None and after.channel.name == voice_channel:
+    elif after.channel is not None and after.channel.name == bot_constants.VOICE_CHANNEL:
         await member.send(
             f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between {start_hour}:00 and {end_hour}:00 Pacific time.")
 
@@ -606,4 +526,4 @@ def _get_current_time() -> Tuple[str, datetime]:
     return join_time, pacific_time
 
 
-bot.run(bot_token)
+bot.run(bot_constants.TOKEN)

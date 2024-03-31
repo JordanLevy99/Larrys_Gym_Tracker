@@ -1,4 +1,7 @@
+import os
+import sqlite3
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -9,6 +12,20 @@ class BotConstants:
     VOICE_CHANNEL = 'Larry\'s Gym'
     TEXT_CHANNEL_ID = 1193971930794045544
     VOICE_CHANNEL_ID = 1143972564616626209
+
+
+class Database:
+
+    def __init__(self, bot_constants: BotConstants):
+        self.connection = sqlite3.connect(bot_constants.DB_FILE)
+        self.cursor = self.connection.cursor()
+
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS voice_log
+                        (name text, id text, time datetime, channel text, user_joined boolean)''')
+
+        # Create table if it doesn't exist
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS points
+                        (name text, id text, points_awarded float, day datetime, type text)''')
 
 
 @dataclass
@@ -25,7 +42,6 @@ class WalkArgs:
 
 @dataclass
 class Songs:
-
     BIRTHDAY = {
         # (month, day): (name, link)
         (1, 19): ('james', 'https://www.youtube.com/watch?v=jcZRsApNZwk'),
@@ -66,3 +82,6 @@ class Songs:
         'shamupete': [('Bloopin.mp3', 81, 0),
                       ('chocolate_rain.mp3', 60, 0)]
     }
+
+
+ROOT_PATH = os.path.dirname(Path(os.path.abspath(__file__)).parent)

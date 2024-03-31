@@ -11,7 +11,6 @@ from discord.ext import commands
 
 # from cli.main import database as db
 from src.types import BotConstants, WalkArgs
-from src.commands import leaderboard
 
 
 def _process_query(query, type_filter=''):
@@ -138,10 +137,10 @@ async def determine_winner(db, *args):
     return winner
 
 
-async def play_song(voice_client, file_path: str, duration: int = 16, start_second: int = 15,
+async def play_song(voice_client, file_path: str, backend_client, duration: int = 16, start_second: int = 15,
                     disconnect_after_song: bool = True):
     print(file_path)
-    dropbox.download_file(file_path)
+    backend_client.download_file(file_path)
     voice_client.play(discord.FFmpegPCMAudio(file_path, options=f'-ss {start_second}'))
     await asyncio.sleep(duration)
     voice_client.stop()
@@ -149,34 +148,11 @@ async def play_song(voice_client, file_path: str, duration: int = 16, start_seco
         await voice_client.disconnect()
 
 
-def upload():
-    dropbox.upload_file(bot_constants.DB_FILE)
+def upload(backend_client):
+    backend_client.upload_file(BotConstants.DB_FILE)
 
 
-async def update_points(ctx, current_time):
-    # Groupby name and id, extract day from date and groupby day, subtract max and min time to get duration
-    # Divide duration by walk duration to get points
-    voice_log_df = pd.read_sql_query("""
-                            SELECT * 
-                            FROM voice_log""", db.connection)
-    voice_log_df['time'] = voice_log_df['time'].astype('datetime64[ns]')
-    voice_log_df['day'] = voice_log_df['time'].dt.date
-    current_day = datetime.now(pytz.timezone('US/Pacific')).date()
-    latest_voice_log_day = voice_log_df['day'].max()
-    if current_day != latest_voice_log_day or args.test:
-        await ctx.send(f'No one has joined the walk today. Bad !end_walk command registered. 500 social credit will '
-                       f'be deducted from `{ctx.author.name}`.')
-        return
-    await ctx.send(f'Walk ended at {current_time}! Getting weekly leaderboard...')
 
-    daily_voice_log_df = voice_log_df.loc[voice_log_df['day'] == current_day]
-    users_durations = daily_voice_log_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
-    calculate_points(daily_voice_log_df, users_durations)
-    print(pd.read_sql_query("""SELECT * FROM points""", db.connection).tail())
-    await leaderboard(ctx, 'WEEKLY')
-    await ctx.send('Getting Today\'s On Time Leaderboard')
-    await leaderboard(ctx, 'on time today')
-    upload()
 
 
 def download(backend_client):

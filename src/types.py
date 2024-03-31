@@ -84,4 +84,4 @@ class Songs:
     }
 
 
-ROOT_PATH = os.path.dirname(Path(os.path.abspath(__file__)).parent)
+ROOT_PATH = Path(os.path.dirname(Path(os.path.abspath(__file__)).parent))

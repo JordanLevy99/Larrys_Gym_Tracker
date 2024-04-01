@@ -90,7 +90,6 @@ class LarrysCommands(commands.Cog):
     # noinspection SqlUnused
     @commands.command()
     async def leaderboard(self, ctx, *args):
-        print(pd.read_sql_query("SELECT * FROM voice_log", self.bot.database.connection).tail())
         self.__walkers = discord.utils.get(ctx.guild.roles, name='Walker')
         query = ' '.join(args)
         points_column, time_filter, type_filter = _process_query(query)

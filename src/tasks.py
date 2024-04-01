@@ -21,7 +21,7 @@ class LarrysTasks(commands.Cog):
     @tasks.loop(hours=24)
     async def determine_monthly_winner(self):
         _, pacific_time = _get_current_time()
-        if pacific_time.day == 31:
+        if pacific_time.day == 1:
             voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
             if voice_channel and len(voice_channel.members) >= 1:

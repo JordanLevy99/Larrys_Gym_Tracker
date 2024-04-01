@@ -1,30 +1,37 @@
 import asyncio
-import time
-# from asyncio import tasks
-from datetime import datetime, timedelta
 import random
+import time
+from datetime import timedelta
+import datetime
 
 import discord
 import pandas as pd
 import pytz
 from discord.ext import commands, tasks
 
-from cli.main import database as db
-from src.bot import LarrysBot
-from src.types import BotConstants, WalkArgs, Songs
+from src.types import Songs
 from src.util import _get_current_time, play_song, determine_winner
 
 
 class LarrysTasks(commands.Cog):
 
-    def __init__(self, bot: LarrysBot):
+    def __init__(self, bot: 'LarrysBot'):
         self.bot = bot
+        # self.daily_winner_time = datetime.time(hour=self.bot.walk_constants.WINNER_HOUR,
+        #                                  minute=self.bot.walk_constants.WINNER_MINUTE,
+        #                                  tzinfo=pytz.timezone('US/Pacific'))
+        # self.monthly_winner_time = datetime.time(hour=self.bot.walk_constants.WINNER_HOUR,
+        #                                          minute=self.bot.walk_constants.WINNER_MINUTE - 1,
+        #                                          tzinfo=pytz.timezone('US/Pacific'))
+        # self.determine_daily_winner.start()
+        # self.determine_monthly_winner.start()
+        # self.draw_card.start()
 
     @tasks.loop(hours=24)
     async def determine_monthly_winner(self):
         _, pacific_time = _get_current_time()
         if pacific_time.day == 1:
-            voice_channel = self.bot.discord_client.get_channel(BotConstants.VOICE_CHANNEL_ID)
+            voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
             if voice_channel and len(voice_channel.members) >= 1:
                 try:
@@ -35,13 +42,13 @@ class LarrysTasks(commands.Cog):
 
                 voice_client = self.bot.discord_client.voice_clients[0]
                 leaderboard_query = """
-                    SELECT name, SUM(points_awarded) AS total_points
-                    FROM points
-                    WHERE day >= date('now', '-1 month')
-                    GROUP BY name
-                    ORDER BY total_points DESC
-                    LIMIT 1
-                """
+                        SELECT name, SUM(points_awarded) AS total_points
+                        FROM points
+                        WHERE day >= date('now', '-1 month')
+                        GROUP BY name
+                        ORDER BY total_points DESC
+                        LIMIT 1
+                    """
                 leaderboard_df = pd.read_sql_query(leaderboard_query, self.bot.database.connection)
                 winner = leaderboard_df.iloc[0]
                 if winner.empty:
@@ -49,12 +56,12 @@ class LarrysTasks(commands.Cog):
                     await voice_channel.disconnect()
                     return
                 # winner_args = winner_songs[winner['name']]
-                text_channel = self.bot.discord_client.get_channel(BotConstants.TEXT_CHANNEL_ID)
+                text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
 
                 await text_channel.send(
                     f"Congrats to dinkstar for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
                 await play_song(voice_client, f'data/songs/speech.wav', self.bot.backend_client, 5, 0, False)
-                await play_song(voice_client, f'data/songs/all_of_the_lights.mp3', self.bot.backend_client,14, 0, True)
+                await play_song(voice_client, f'data/songs/all_of_the_lights.mp3', self.bot.backend_client, 14, 0, True)
 
     @tasks.loop(hours=24)
     async def draw_card(self):
@@ -72,17 +79,18 @@ class LarrysTasks(commands.Cog):
         rank = random.choice(ranks)
         suit_str = f"\_\_\_\_\_\n|{suit}      |\n|    {rank}    |\n|      {suit}|\n\_\_\_\_\_"
 
-        text_channel = self.bot.discord_client.get_channel(BotConstants.TEXT_CHANNEL_ID)
+        text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
         await text_channel.send("Card of the day is:\n" + suit_str)
 
     @tasks.loop(hours=24)
     async def determine_daily_winner(self):
-        voice_channel = self.bot.discord_client.get_channel(BotConstants.VOICE_CHANNEL_ID)
+        voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
         if voice_channel and len(voice_channel.members) >= 1:
             try:
                 voice_client = await voice_channel.connect()
-            except discord.errors.ClientException:
+            except discord.errors.ClientException as e:
+                print(str(e))
                 print(
                     f'Already connected to a voice channel.')
 
@@ -103,7 +111,7 @@ class LarrysTasks(commands.Cog):
                 duration = 73
                 if birthday_name == 'ben':
                     duration = 49
-                text_channel = self.bot.discord_client.get_channel(BotConstants.TEXT_CHANNEL_ID)
+                text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
                 await text_channel.send(f'Happy Birthday {birthday_name.capitalize()}!\n{birthday_link}')
                 await play_song(voice_client, f'data/songs/happy_birthday_{birthday_name}.mp3',
                                 self.bot.backend_client, duration, 0, disconnect_after_song=False)
@@ -118,9 +126,10 @@ class LarrysTasks(commands.Cog):
 
     @determine_daily_winner.before_loop
     async def before_determine_daily_winner(self):
-        now = datetime.now()
+        await self.bot.discord_client.wait_until_ready()
+        now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.replace(now, hour=WalkArgs.WINNER_HOUR, minute=WalkArgs.WINNER_MINUTE, second=0,
+        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR, minute=self.bot.walk_constants.WINNER_MINUTE, second=0,
                                        microsecond=0)
         if now > target_time:
             target_time += timedelta(days=1)
@@ -130,9 +139,9 @@ class LarrysTasks(commands.Cog):
 
     @draw_card.before_loop
     async def before_draw_card(self):
-        now = datetime.now()
+        now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.replace(now, hour=6, minute=45, second=0, microsecond=0)
+        target_time = datetime.datetime.replace(now, hour=6, minute=45, second=0, microsecond=0)
         if now > target_time:
             target_time += timedelta(days=1)
         print('Drawing card at', target_time)
@@ -141,9 +150,10 @@ class LarrysTasks(commands.Cog):
 
     @determine_monthly_winner.before_loop
     async def before_determine_monthly_winner(self):
-        now = datetime.now()
+        now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.replace(now, hour=WalkArgs.WINNER_HOUR, minute=WalkArgs.WINNER_MINUTE - 1, second=0,
+        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
+                                                minute=self.bot.walk_constants.WINNER_MINUTE - 1, second=0,
                                        microsecond=0)
         if now > target_time:
             target_time += timedelta(days=1)

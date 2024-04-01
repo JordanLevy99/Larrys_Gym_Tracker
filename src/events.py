@@ -1,61 +1,73 @@
 import pandas as pd
 from discord.ext import commands
 
-from src.bot import LarrysBot
-from src.util import _get_current_time, append_to_database, log_and_upload, download
-
+from src.util import download, _get_current_time, log_data, upload, append_to_database
 
 
 class LarrysEvents(commands.Cog):
 
-    def __init__(self, bot: LarrysBot):
+    def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
     async def on_ready(self):
         print(f'We have logged in as {self.bot.discord_client.user}')
-        determine_daily_winner.start()
-        determine_monthly_winner.start()
-        draw_card.start()
-
+        self.bot.discord_client.cogs['LarrysTasks'].determine_daily_winner.start()
+        self.bot.discord_client.cogs['LarrysTasks'].determine_monthly_winner.start()
+        self.bot.discord_client.cogs['LarrysTasks'].draw_card.start()
+        # self.bot.discord_client.determine_daily_winner.start()
+        # self.bot.discord_client.determine_monthly_winner.start()
+        # self.bot.discord_client.draw_card.start()
+        download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         # global walk_ended, length_of_walk_in_minutes, max_on_time_points, max_duration_points, start_hour, end_hour
-
+        # TODO: implement mute checker/logging
         # if member.voice is not None and member.voice.self_mute:
         #     print(f'{member.name} is muted')
         #     return
         current_time, pacific_time = _get_current_time()
-        # pacific_time = datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S.%f")
-        walk_hour_condition = pacific_time.hour >= walk_constants.START_HOUR and pacific_time.hour < walk_constants.END_HOUR
+        walk_hour_condition = (
+                    self.bot.walk_constants.START_HOUR <= pacific_time.hour < self.bot.walk_constants.END_HOUR)
 
         if self.bot.walk_constants.WALK_ENDED:
-            points = pd.read_sql('SELECT day FROM points ORDER BY day DESC LIMIT 1', db.connection)
-            current_day = str(pacific_time.date())
-            walk_day = str(points.values[0][0])
-            if current_day != walk_day and walk_hour_condition:
-                walk_ended = False
-                print('New walk starting')
-                download()
-            else:
-                print('Walk already ended')
-                return
+            await self.__check_to_start_new_walk(member, pacific_time, walk_hour_condition)
 
         # Check if the time is between 7am and 9am in Pacific timezone
         if walk_hour_condition:
-            if after.channel is not None and after.channel.name == bot_constants.VOICE_CHANNEL:
-                # Get current time in UTC
-                join_time, _ = _get_current_time()
-                append_to_database(member, after, join_time, joined=True)
-                log_and_upload(member, join_time, True)
+            if self.__voice_channel_status_changed(after):
+                await self.__log_voice_channel_event(after, member, joined=True)
                 await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym within the proper time frame.")
-            if before.channel is not None and before.channel.name == bot_constants.VOICE_CHANNEL:
-                leave_time, _ = _get_current_time()
-
-                append_to_database(member, before, leave_time, joined=False)
-                log_and_upload(member, leave_time, False)
-        elif after.channel is not None and after.channel.name == bot_constants.VOICE_CHANNEL:
+            if self.__voice_channel_status_changed(before):
+                await self.__log_voice_channel_event(before, member, joined=False)
+        elif await self.__voice_channel_status_changed(after):
             await member.send(
                 f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between "
-                f"{walk_constants.START_HOUR}:00 and {walk_constants.END_HOUR}:00 Pacific time.")
+                f"{self.bot.walk_constants.START_HOUR}:00 and {self.bot.walk_constants.END_HOUR}:00 Pacific time.")
+
+    def log_and_upload(self, member, event_time, joining):
+        if self.bot.args.verbose:
+            log_data(self.bot.database, member, event_time, joining)
+        if not self.bot.args.test:
+            upload(self.bot.backend_client)
+
+    def __voice_channel_status_changed(self, event):
+        return event.channel is not None and event.channel.name == self.bot.bot_constants.VOICE_CHANNEL
+
+    async def __log_voice_channel_event(self, event, member, joined):
+        current_time, _ = _get_current_time()
+        append_to_database(self.bot.database, member, event, current_time, joined)
+        self.log_and_upload(member, current_time, joined)
+
+    async def __check_to_start_new_walk(self, member, pacific_time, walk_hour_condition):
+        points = pd.read_sql('SELECT day FROM points ORDER BY day DESC LIMIT 1', self.bot.database.connection)
+        current_day = str(pacific_time.date())
+        walk_day = str(points.values[0][0])
+        if current_day != walk_day and walk_hour_condition:
+            self.bot.walk_constants.WALK_ENDED = False
+            print('New walk starting')
+            download(self.bot.backend_client)
+        else:
+            print('Walk already ended')
+            await member.send('The walk has already ended for today. Please join tomorrow.')

@@ -1,74 +1,144 @@
-from datetime import datetime
+import asyncio
+import shutil
 import sqlite3
+from datetime import datetime, timedelta
+from typing import Tuple
+
+import discord
 import pandas as pd
-from datetime import timedelta
-# # Connect to the database
-# conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
-conn = sqlite3.connect('larrys_database.db')
-cursor = conn.cursor()
+import pytz
+from discord.ext import commands
 
-# # Update the format of dates to include microsecond
-# query = "UPDATE voice_log SET time = CASE WHEN time LIKE '%.%' THEN time ELSE strftime('%Y-%m-%d %H:%M:%S.000000', time) END"
-# cursor.execute(query)
+# from cli.main import database as db
+from src.types import BotConstants, WalkArgs
 
-# query = """INSERT INTO voice_log
-#             VALUES ('dinkstar', 353332394541187074, '2024-01-07 07:00:01.000000', "Larry's Gym", 1),
-#                    ('jam4bears', 390403088722165762, '2024-01-07 07:00:01.000000', "Larry's Gym", 1),
-#                     ('shamupete', 621938294422241301, '2024-01-07 07:00:03.000000', "Larry's Gym", 1),
-#                     ('bemno', 369989877229682688, '2024-01-07 07:02:04.000000', "Larry's Gym", 1),
-#                     ('dinkstar', 353332394541187074, '2024-01-07 07:49:01.000000', "Larry's Gym", 0),
-#                    ('jam4bears', 390403088722165762, '2024-01-07 07:49:01.000000', "Larry's Gym", 0),
-#                     ('shamupete', 621938294422241301, '2024-01-07 07:49:03.000000', "Larry's Gym", 0),
-#                     ('bemno', 369989877229682688, '2024-01-07 07:49:04.000000', "Larry's Gym", 0)
-#         """
 
-# query = "SELECT DISTINCT * FROM points"
-# query = "DROP TABLE 'larrys_database.db'"
-# query = "UPDATE points SET points_awarded = points_awarded - 2000 WHERE points_awarded > 2000"
+def _process_query(query, type_filter=''):
+    query = query.strip().upper()
+    print(query)
+    if '' == query:
+        return 'total', '', type_filter
+    elif 'ON TIME' in query:
+        return _process_query(query.replace('ON TIME', ''), type_filter="""WHERE type = "ON TIME" """)
+    elif 'DURATION' in query:
+        return _process_query(query.replace('DURATION', ''), type_filter="""WHERE type = "DURATION" """)
+    elif 'TODAY' in query:
+        return 'daily', f"""WHERE day = "{datetime.now().date()}" """, type_filter
+    elif 'WEEK' in query:
+        last_monday = datetime.now().date() - timedelta(days=datetime.now().weekday())
+        return 'weekly', f"""WHERE day >= "{last_monday}" """, type_filter
+    elif 'MONTH' in query:
+        return 'monthly', f"""WHERE day >= "{datetime.now().date().replace(day=1)}" """, type_filter
+    elif 'YEAR' in query:
+        return 'yearly', f"""WHERE day >= "{datetime.now().date().replace(month=1, day=1)}" """, type_filter
 
-# query = "SELECT name FROM sqlite_master WHERE type='table'"
-# cursor.execute(query)
-# query = "DELETE FROM points WHERE rowid NOT IN (SELECT MIN(rowid) FROM points GROUP BY name, id, points_awarded, day, type)"
 
-# Select all rows from the points table
-# leaderboard_query = f"""SELECT name, MIN(time) as 'total'
-#                         FROM (
-#                             SELECT name, id, time
-#                             FROM voice_log
-#                             WHERE time >= "{datetime.now().date()}"
-#                         )  
-#                         GROUP BY id"""
+def calculate_points(database, users_df, users_durations, length_of_walk_in_minutes, max_duration_points, start_hour):
+    # TODO: move this function to a class that contains our walk constants
+    print(users_durations)
+    walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
+    duration_points = (users_durations.dt.total_seconds() / walk_time_in_seconds) * 50
+    duration_points.loc[duration_points > max_duration_points] = max_duration_points
+    late_time = (users_df.groupby('id').apply(
+        lambda user: user['time'].min() - user['time'].min().replace(hour=start_hour, minute=0, second=0,
+                                                                     microsecond=0)))
+    on_time_points = WalkArgs.MAX_DURATION_POINTS - (late_time.dt.total_seconds()
+                                                           / (walk_time_in_seconds / 2)) * 50
+    on_time_points.loc[on_time_points < 0] = 0
+    # print('User Durations:',users_durations)
+    day = users_df['day'].max()
+    users_df = users_df[['name', 'id', 'day']].drop_duplicates()
+    process_points_df(database, users_df, on_time_points, 'ON TIME', day)
+    process_points_df(database, users_df, duration_points, 'DURATION', day)
 
-leaderboard_query = f"""SELECT name, SUM(points_awarded) as 'total'
+
+def process_points_df(database, users_df, points_df, points_type, day):
+    points_df.name = 'points_awarded'
+    points_df = points_df.to_frame()
+    points_df['type'] = points_type
+    points_df['day'] = day
+    print(f'{points_type} points df before merge: \n', points_df)
+    points_df = points_df.merge(users_df[['name', 'id']], left_on='id', right_on='id', how='left').drop_duplicates()
+    print(f'{points_type} points df after merge: \n', points_df)
+    points_df = points_df[['name', 'id', 'points_awarded', 'day', 'type']]
+    points_df.to_sql('points', database.connection, if_exists='append', index=False)
+    return points_df
+
+
+def log_data(database, member, event_time, joining):
+    leaving_str = "leaving " if not joining else ""
+    print(f'Logged user {member.name} {leaving_str}at {event_time}...')
+    print(pd.read_sql_query("SELECT * FROM voice_log", database.connection).tail())
+
+
+def append_to_database(database, member, event, event_time, joined):
+    database.cursor.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?, ?)",
+              (member.name, member.id, event_time, event.channel.name, joined))
+    database.connection.commit()
+
+
+def _get_current_time() -> Tuple[str, datetime]:
+    utc_now = datetime.now(pytz.utc)
+
+    # Convert to Pacific time
+    pacific_tz = pytz.timezone('US/Pacific')
+    pacific_time = utc_now.astimezone(pacific_tz)
+
+    # Format the time
+    join_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+    print(pacific_time)
+    return join_time, pacific_time
+
+
+# def connect_to_database():
+#     # Connect to the SQLite database
+#     database = sqlite3.connect(bot_constants.DB_FILE)
+#     c = conn.cursor()
+#
+#     # Create table if it doesn't exist
+#     c.execute('''CREATE TABLE IF NOT EXISTS voice_log
+#                 (name text, id text, time datetime, channel text, user_joined boolean)''')
+#
+#     # Create table if it doesn't exist
+#     c.execute('''CREATE TABLE IF NOT EXISTS points
+#                 (name text, id text, points_awarded float, day datetime, type text)''')
+
+
+
+
+async def determine_winner(db, *args):
+    # Select all rows from the points table
+    leaderboard_query = f"""SELECT name, MIN(time) as 'time'
                             FROM (
-                                SELECT name, id, points_awarded, day, type
-                                FROM points
+                                SELECT name, id, time
+                                FROM voice_log
+                                WHERE time >= "{datetime.now().date()}"
+                            )  
+                            GROUP BY id"""
+    print(leaderboard_query)
+    leaderboard_df = pd.read_sql_query(leaderboard_query, db.connection)
+    print(leaderboard_df)
+    leaderboard_df['time'] = leaderboard_df['time'].astype('datetime64[ns]')
+    winner = leaderboard_df.sort_values(by='time', ascending=True).iloc[0]
+    print(winner)
+    return winner
 
-                            ) 
-                            
-                        GROUP BY id"""
-# print(leaderboard_query)
-# eight_am_today = datetime.now().replace(hour=8, minute=0, second=0, microsecond=0)
-# delete_query = f"DELETE FROM voice_log WHERE time > '{eight_am_today}'"
-delete_query = f"""DELETE FROM voice_log 
-                WHERE name = 'bemno' 
-                AND time > '2024-01-11 07:00:00.000000' 
-                AND time < '2024-01-12 07:00:00.000000'"""
 
-cursor.execute(delete_query)
+async def play_song(voice_client, file_path: str, backend_client, duration: int = 16, start_second: int = 15,
+                    disconnect_after_song: bool = True):
+    print(file_path)
+    backend_client.download_file(file_path)
+    voice_client.play(discord.FFmpegPCMAudio(file_path, options=f'-ss {start_second}'))
+    await asyncio.sleep(duration)
+    voice_client.stop()
+    if disconnect_after_song:
+        await voice_client.disconnect()
 
-delete_query = f"""DELETE FROM points
-                WHERE name = 'bemno' 
-                AND day = '2024-01-11'""" 
 
-cursor.execute(delete_query)
+def upload(backend_client):
+    backend_client.upload_file(BotConstants.DB_FILE)
 
-# leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
-# print(leaderboard_df)
 
-# print(pd.read_sql_query(query, conn))
-# cursor.execute(query)
-
-# Commit the changes and close the connection
-conn.commit()
-conn.close()
+def download(backend_client, db_file: str = BotConstants.DB_FILE):
+    print(f'Downloading {db_file}...')
+    backend_client.download_file(db_file)

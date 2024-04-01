@@ -1,35 +1,37 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Dict, Tuple, List
 
 ROOT_PATH = Path(os.path.dirname(Path(os.path.abspath(__file__)).parent))
 
+
 @dataclass
 class BotConstants:
-    TOKEN = None
-    DB_FILE = 'larrys_database.db'
-    TEXT_CHANNEL = 'larrys-gym-logger'
-    VOICE_CHANNEL = 'Larry\'s Gym'
-    TEXT_CHANNEL_ID = 1193971930794045544
-    VOICE_CHANNEL_ID = 1143972564616626209
-    DB_PATH = ROOT_PATH / 'data' / DB_FILE
+    TOKEN: str = ''
+    DB_FILE: str = 'larrys_database.db'
+    TEXT_CHANNEL: str = 'larrys-gym-logger'
+    VOICE_CHANNEL: str = 'Larry\'s Gym'
+    TEXT_CHANNEL_ID: int = 1193971930794045544
+    VOICE_CHANNEL_ID: int = 1143972564616626209
+    DB_PATH: Path = ROOT_PATH / 'data' / DB_FILE
 
 
 @dataclass
 class WalkArgs:
-    START_HOUR = 7
-    END_HOUR = 9
-    LENGTH_OF_WALK_IN_MINUTES = 45
-    MAX_ON_TIME_POINTS = 50
-    MAX_DURATION_POINTS = 50
-    WALK_ENDED = False
-    WINNER_HOUR = START_HOUR
-    WINNER_MINUTE = 8
+    START_HOUR: int = 7
+    END_HOUR: int = 9
+    LENGTH_OF_WALK_IN_MINUTES: int = 45
+    MAX_ON_TIME_POINTS: int = 50
+    MAX_DURATION_POINTS: int = 50
+    WALK_ENDED: bool = False
+    WINNER_HOUR: int = START_HOUR
+    WINNER_MINUTE: int = 8
 
 
 @dataclass
 class Songs:
-    BIRTHDAY = {
+    BIRTHDAY: Dict[Tuple, Tuple] = field(default_factory=lambda: {
         # (month, day): (name, link)
         (1, 19): ('james', 'https://www.youtube.com/watch?v=jcZRsApNZwk'),
         (9, 27): ('jordan', 'https://www.youtube.com/watch?v=E8Jx5jOXM9Y'),
@@ -37,9 +39,9 @@ class Songs:
         (1, 22): ('ben', 'https://www.youtube.com/watch?v=t5r1qIY0g2g'),
         (4, 12): ('peter', 'https://www.youtube.com/watch?v=SsoIMucoHa4'),
         (1, 27): ('mikal', 'https://www.youtube.com/watch?v=Hz8-5D2dmus'),
-    }
+    })
 
-    WINNER = {
+    WINNER: Dict[str, List] = field(default_factory=lambda: {
         # Provides the song name, duration, and start second
         'jam4bears': [('rocky_balboa.mp3', 15, 0),
                       ('walk_it_talk_it.mp3', 45, 40)],
@@ -68,6 +70,4 @@ class Songs:
                    ('Fergie_sings_the_national_anthem.mp3', 62, 77)],
         'shamupete': [('Bloopin.mp3', 81, 0),
                       ('chocolate_rain.mp3', 60, 0)]
-    }
-
-
+    })

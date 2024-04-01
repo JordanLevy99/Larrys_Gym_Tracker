@@ -37,7 +37,7 @@ class LarrysEvents(commands.Cog):
                 await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym within the proper time frame.")
             if self.__voice_channel_status_changed(before):
                 await self.__log_voice_channel_event(before, member, joined=False)
-        elif await self.__voice_channel_status_changed(after):
+        elif self.__voice_channel_status_changed(after):
             await member.send(
                 f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between "
                 f"{self.bot.walk_constants.START_HOUR}:00 and {self.bot.walk_constants.END_HOUR}:00 Pacific time.")

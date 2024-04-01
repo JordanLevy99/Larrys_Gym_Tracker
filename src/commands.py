@@ -75,7 +75,6 @@ class LarrysCommands(commands.Cog):
 
     @commands.command()
     async def start_time(self, ctx, start_hour: int):
-        # global start_hour, end_hour, winner_hour
         self.bot.walk_constants.START_HOUR = start_hour
         self.bot.walk_constants.END_HOUR = start_hour + 2
         self.bot.walk_constants.WINNER_HOUR = start_hour
@@ -97,8 +96,10 @@ class LarrysCommands(commands.Cog):
 
         points_column = f'{points_column}' if points_column else 'total'
         leaderboard_query = self.__get_leaderboard_query(points_column, type_filter, time_filter)
-
+        print(leaderboard_query)
+        print('database connection', self.bot.database.connection)
         leaderboard_df = pd.read_sql_query(leaderboard_query, self.bot.database.connection)
+        print(leaderboard_df)
         if leaderboard_df.empty:
             leaderboard_df = self.__get_zeroed_leaderboard(points_column)
         leaderboard_df[points_column] = leaderboard_df[points_column].round(2)

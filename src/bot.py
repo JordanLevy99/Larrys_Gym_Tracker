@@ -33,7 +33,7 @@ class LarrysBot:
             self.bot_constants.VOICE_CHANNEL_ID = 1191159993861414922
             self.bot_constants.DB_FILE = 'test.db'
             self.bot_constants.DB_PATH = ROOT_PATH / 'data' / self.bot_constants.DB_FILE
-        print(self.bot_constants.__dict__)
+        print('these are the bot constants:', self.bot_constants.__dict__)
         self.database = Database(self.bot_constants)
         self.walk_constants = WalkArgs()
         self.songs = Songs()

@@ -23,6 +23,7 @@ class LarrysEvents(commands.Cog):
         # if member.voice is not None and member.voice.self_mute:
         #     print(f'{member.name} is muted')
         #     return
+        print(f'here are the bot constants again: {self.bot.bot_constants.__dict__}')
         current_time, pacific_time = _get_current_time()
         walk_hour_condition = (
                     self.bot.walk_constants.START_HOUR <= pacific_time.hour < self.bot.walk_constants.END_HOUR)

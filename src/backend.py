@@ -44,13 +44,14 @@ class Dropbox:
                 return False
         return True
 
-    def __get_local_file_path(self, file_name):
+    @staticmethod
+    def __get_local_file_path(file_name):
         return file_name
 
 
 class Database:
     def __init__(self, bot_constants: BotConstants):
-        self.connection = sqlite3.connect(bot_constants.DB_PATH)
+        self.connection = sqlite3.connect(bot_constants.DB_FILE)
         self.cursor = self.connection.cursor()
 
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS voice_log

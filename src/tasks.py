@@ -17,20 +17,11 @@ class LarrysTasks(commands.Cog):
 
     def __init__(self, bot: 'LarrysBot'):
         self.bot = bot
-        # self.daily_winner_time = datetime.time(hour=self.bot.walk_constants.WINNER_HOUR,
-        #                                  minute=self.bot.walk_constants.WINNER_MINUTE,
-        #                                  tzinfo=pytz.timezone('US/Pacific'))
-        # self.monthly_winner_time = datetime.time(hour=self.bot.walk_constants.WINNER_HOUR,
-        #                                          minute=self.bot.walk_constants.WINNER_MINUTE - 1,
-        #                                          tzinfo=pytz.timezone('US/Pacific'))
-        # self.determine_daily_winner.start()
-        # self.determine_monthly_winner.start()
-        # self.draw_card.start()
 
     @tasks.loop(hours=24)
     async def determine_monthly_winner(self):
         _, pacific_time = _get_current_time()
-        if pacific_time.day == 1:
+        if pacific_time.day == 31:
             voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
             if voice_channel and len(voice_channel.members) >= 1:
@@ -59,9 +50,9 @@ class LarrysTasks(commands.Cog):
                 text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
 
                 await text_channel.send(
-                    f"Congrats to dinkstar for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
-                await play_song(voice_client, f'data/songs/speech.wav', self.bot.backend_client, 5, 0, False)
-                await play_song(voice_client, f'data/songs/all_of_the_lights.mp3', self.bot.backend_client, 14, 0, True)
+                    f"Congrats to kyboydigital for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
+                await play_song(voice_client, f'data/songs/march_winner_2024.wav', self.bot.backend_client, 6, 0, False)
+                await play_song(voice_client, f'data/songs/first_of_the_month.mp3', self.bot.backend_client, 21, 41, True)
 
     @tasks.loop(hours=24)
     async def draw_card(self):

@@ -1,1 +1,1 @@
-worker: python src/bot.py
+worker: python larrys_gym_tracker.py

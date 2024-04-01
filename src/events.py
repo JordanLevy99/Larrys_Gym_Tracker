@@ -15,14 +15,10 @@ class LarrysEvents(commands.Cog):
         self.bot.discord_client.cogs['LarrysTasks'].determine_daily_winner.start()
         self.bot.discord_client.cogs['LarrysTasks'].determine_monthly_winner.start()
         self.bot.discord_client.cogs['LarrysTasks'].draw_card.start()
-        # self.bot.discord_client.determine_daily_winner.start()
-        # self.bot.discord_client.determine_monthly_winner.start()
-        # self.bot.discord_client.draw_card.start()
         download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        # global walk_ended, length_of_walk_in_minutes, max_on_time_points, max_duration_points, start_hour, end_hour
         # TODO: implement mute checker/logging
         # if member.voice is not None and member.voice.self_mute:
         #     print(f'{member.name} is muted')

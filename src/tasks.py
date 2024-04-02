@@ -9,7 +9,6 @@ import pandas as pd
 import pytz
 from discord.ext import commands, tasks
 
-from src.types import Songs
 from src.util import _get_current_time, play_song, determine_winner
 
 
@@ -91,13 +90,13 @@ class LarrysTasks(commands.Cog):
                 print('No winner found')
                 await voice_channel.disconnect()
                 return
-            winner_args = Songs.WINNER[winner['name']]
+            winner_args = self.bot.songs.WINNER[winner['name']]
             random_winner_args = random.choice(winner_args)
             _, pacific_time = _get_current_time()
             current_date = pacific_time.date()
             # TODO: get these values from the `birthday_args` dictionary
             try:
-                current_birthday = Songs.BIRTHDAY[(current_date.month, current_date.day)]
+                current_birthday = self.bot.songs.BIRTHDAY[(current_date.month, current_date.day)]
                 birthday_name, birthday_link = current_birthday
                 duration = 73
                 if birthday_name == 'ben':

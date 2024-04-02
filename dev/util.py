@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import timedelta
 # # Connect to the database
 # conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
-conn = sqlite3.connect('larrys_database.db')
+conn = sqlite3.connect('../test.db')
 cursor = conn.cursor()
 
 # # Update the format of dates to include microsecond
@@ -39,29 +39,28 @@ cursor = conn.cursor()
 #                         )  
 #                         GROUP BY id"""
 
-leaderboard_query = f"""SELECT name, SUM(points_awarded) as 'total'
-                            FROM (
-                                SELECT name, id, points_awarded, day, type
-                                FROM points
-
-                            ) 
-                            
-                        GROUP BY id"""
+# leaderboard_query = f"""SELECT name, SUM(points_awarded) as 'total'
+#                             FROM (
+#                                 SELECT name, id, points_awarded, day, type
+#                                 FROM points
+#
+#                             )
+#
+#                         GROUP BY id"""
 # print(leaderboard_query)
 # eight_am_today = datetime.now().replace(hour=8, minute=0, second=0, microsecond=0)
 # delete_query = f"DELETE FROM voice_log WHERE time > '{eight_am_today}'"
 delete_query = f"""DELETE FROM voice_log 
-                WHERE name = 'bemno' 
-                AND time > '2024-01-11 07:00:00.000000' 
-                AND time < '2024-01-12 07:00:00.000000'"""
+                WHERE name = 'dinkstar' 
+                AND time >= '2024-03-31 07:00:00.000000'"""
 
 cursor.execute(delete_query)
 
-delete_query = f"""DELETE FROM points
-                WHERE name = 'bemno' 
-                AND day = '2024-01-11'""" 
-
-cursor.execute(delete_query)
+# delete_query = f"""DELETE FROM points
+#                 WHERE name = 'bemno'
+#                 AND day = '2024-01-11'"""
+#
+# cursor.execute(delete_query)
 
 # leaderboard_df = pd.read_sql_query(leaderboard_query, conn)
 # print(leaderboard_df)

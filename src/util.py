@@ -135,8 +135,8 @@ async def play_song(voice_client, file_path: str, backend_client, duration: int 
         await voice_client.disconnect()
 
 
-def upload(backend_client):
-    backend_client.upload_file(BotConstants.DB_FILE)
+def upload(backend_client, db_file: str = BotConstants.DB_FILE):
+    backend_client.upload_file(db_file)
 
 
 def download(backend_client, db_file: str = BotConstants.DB_FILE):

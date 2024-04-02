@@ -18,7 +18,6 @@ class DebugCommands(commands.Cog):
     def __init__(self, bot: 'LarrysBot'):
         self.bot = bot
 
-
     @commands.command()
     async def winner_minute(self, ctx, minute: int):
         # global start_hour, end_hour, winner_hour
@@ -43,8 +42,8 @@ class DebugCommands(commands.Cog):
 
     @commands.command()
     async def upload_database(self, ctx):
-        upload(self.bot.backend_client)
-        print(f'Uploaded {BotConstants.DB_FILE} to Dropbox!')
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+        print(f'Uploaded {self.bot.bot_constants.DB_FILE} to Dropbox!')
 
     @commands.command()
     async def copy_database(self, ctx, new_db_file: str):
@@ -55,7 +54,7 @@ class DebugCommands(commands.Cog):
         self.bot.bot_constants.DB_PATH = new_db_path
         await ctx.send(f'Database file set to {self.bot.bot_constants.DB_FILE}. Path is {self.bot.bot_constants.DB_PATH}')
         self.bot.database = Database(self.bot.bot_constants)
-        upload(self.bot.backend_client)
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
 
     @commands.command()
     async def get_id(self, ctx):
@@ -72,6 +71,7 @@ class LarrysCommands(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.__walkers = None
 
     @commands.command()
     async def start_time(self, ctx, start_hour: int):

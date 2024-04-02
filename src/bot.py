@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from cli.args import parse_args
 from src.backend import Dropbox, Database
 from src.commands import LarrysCommands, DebugCommands
+from src.profiles import ProfileCommands
 from src.tasks import LarrysTasks
 from src.events import LarrysEvents
 from src.types import BotConstants, WalkArgs, Songs, ROOT_PATH
@@ -57,5 +58,6 @@ class LarrysBot:
         await self.discord_client.add_cog(LarrysEvents(self))
         await self.discord_client.add_cog(LarrysCommands(self))
         await self.discord_client.add_cog(LarrysTasks(self))
+        await self.discord_client.add_cog(ProfileCommands(self))
         if self.args.test:
             await self.discord_client.add_cog(DebugCommands(self))

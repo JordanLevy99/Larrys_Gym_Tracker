@@ -8,7 +8,6 @@ import discord
 import pandas as pd
 import pytz
 from discord.ext import commands
-
 # from cli.main import database as db
 from src.types import BotConstants, WalkArgs
 

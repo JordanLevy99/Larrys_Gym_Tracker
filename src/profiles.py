@@ -199,7 +199,7 @@ class ProfilePoints(Profile):
         average_points_per_day = self.user_points_df['total_points'].mean()
         self.__points = f"\n\n**Points**" \
                         f"\n\tAverage points per day: **{average_points_per_day:.2f}**" \
- \
+
         weekday_query = 'weekday != "Saturday" and weekday != "Sunday"'
         self.__set_points_per_day(weekday_query, day_order=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'])
 

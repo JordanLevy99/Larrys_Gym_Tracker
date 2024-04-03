@@ -27,7 +27,7 @@ class TTSTasks(commands.Cog):
         )
 
     @tasks.loop(hours=24)
-    async def exercise_of_the_day(self, ctx):
+    async def exercise_of_the_day(self):
         exercises = [
             'Stare at a wall for 5 minutes',
             'Squats',
@@ -74,7 +74,7 @@ class TTSTasks(commands.Cog):
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
         target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=self.bot.walk_constants.WINNER_MINUTE+2, second=0,
+                                                minute=self.bot.walk_constants.WINNER_MINUTE+6, second=0,
                                                 microsecond=0)
         if now > target_time:
             target_time += datetime.timedelta(days=1)

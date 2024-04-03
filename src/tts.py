@@ -65,7 +65,8 @@ class TTSTasks(commands.Cog):
 
             await play_song(voice_client, str(remote_speech_file_path), self.bot.backend_client, duration=50,
                             start_second=0, download=False)
-        await ctx.send(response)
+        text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
+        await text_channel.send(response)
         # await ctx.send(response.choices[0].text)
 
     @exercise_of_the_day.before_loop
@@ -74,7 +75,7 @@ class TTSTasks(commands.Cog):
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
         target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=self.bot.walk_constants.WINNER_MINUTE+6, second=0,
+                                                minute=self.bot.walk_constants.WINNER_MINUTE+13, second=0,
                                                 microsecond=0)
         if now > target_time:
             target_time += datetime.timedelta(days=1)

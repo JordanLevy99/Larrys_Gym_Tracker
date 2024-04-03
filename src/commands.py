@@ -107,10 +107,14 @@ class LarrysCommands(commands.Cog):
             leaderboard_df.sort_values(by=points_column, ascending=False).reset_index(drop=True),
             headers='keys',
             showindex=False,
-            tablefmt='simple_grid')
+            tablefmt='grid')
         print(f'{points_column.capitalize()} Leaderboard:\n', leaderboard_df)
 
-        await ctx.send(f'```{leaderboard_table}```')
+        embed = discord.Embed(description=f"**{points_column.capitalize()} Leaderboard**")
+        embed.set_footer(text=leaderboard_table)
+        await ctx.send(embed=embed)
+
+        # await ctx.send(f'```{leaderboard_table}```')
 
     @staticmethod
     def __get_leaderboard_query(points_column, type_filter, time_filter):

@@ -34,7 +34,7 @@ class TTSTasks(commands.Cog):
             'Pushups',
             'Jumping Jacks',
             'Planks',
-            'Jump rope',
+            # 'Jump rope',
             'Scorpion plank hold',
             'Boxing punches',
             'Yoga pose holds',

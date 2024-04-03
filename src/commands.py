@@ -93,7 +93,6 @@ class LarrysCommands(commands.Cog):
         self.__walkers = discord.utils.get(ctx.guild.roles, name='Walker')
         query = ' '.join(args)
         points_column, time_filter, type_filter = _process_query(query)
-
         points_column = f'{points_column}' if points_column else 'total'
         leaderboard_query = self.__get_leaderboard_query(points_column, type_filter, time_filter)
         print(leaderboard_query)
@@ -115,7 +114,7 @@ class LarrysCommands(commands.Cog):
 
     @staticmethod
     def __get_leaderboard_query(points_column, type_filter, time_filter):
-        return f"""SELECT name, SUM(points_awarded) as '{points_column}'
+        return f"""SELECT name, SUM(points_awarded) as '{points_column}', COUNT(DISTINCT day) as 'days'
                     FROM (
                         SELECT name, id, points_awarded, day, type
                         FROM points
@@ -147,7 +146,7 @@ class LarrysCommands(commands.Cog):
                 f'No one has joined the walk today. Bad !end_walk command registered. 500 social credit will '
                 f'be deducted from `{ctx.author.name}`.')
             return
-        await ctx.send(f'Walk ended at {current_time}! Getting weekly leaderboard...')
+        await ctx.send(f'Walk ended at {current_time}! Getting this Season\'s leaderboard...')
 
         daily_voice_log_df = voice_log_df.loc[voice_log_df['day'] == current_day]
         users_durations = daily_voice_log_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
@@ -155,7 +154,7 @@ class LarrysCommands(commands.Cog):
                          self.bot.walk_constants.LENGTH_OF_WALK_IN_MINUTES, self.bot.walk_constants.MAX_DURATION_POINTS,
                          self.bot.walk_constants.START_HOUR),
         print(pd.read_sql_query("""SELECT * FROM points""", self.bot.database.connection).tail())
-        await self.leaderboard(ctx, 'WEEKLY')
+        await self.leaderboard(ctx, '')
         await ctx.send('Getting Today\'s On Time Leaderboard')
         await self.leaderboard(ctx, 'on time today')
         upload(self.bot.backend_client)

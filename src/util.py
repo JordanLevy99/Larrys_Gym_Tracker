@@ -14,23 +14,26 @@ from src.types import BotConstants, WalkArgs
 
 def _process_query(query, type_filter=''):
     query = query.strip().upper()
-    print(query)
+    timezone = pytz.timezone('US/Pacific')
     if '' == query:
-        return 'total', '', type_filter
+        current_month = datetime.now(tz=timezone).month
+        start_month = ((current_month - 1) // 3) * 3 + 1
+        return 'season', f"""WHERE strftime('%m', day) >= "{start_month:02}" """, type_filter
     elif 'ON TIME' in query:
         return _process_query(query.replace('ON TIME', ''), type_filter="""WHERE type = "ON TIME" """)
     elif 'DURATION' in query:
         return _process_query(query.replace('DURATION', ''), type_filter="""WHERE type = "DURATION" """)
     elif 'TODAY' in query:
-        return 'daily', f"""WHERE day = "{datetime.now().date()}" """, type_filter
+        return 'daily', f"""WHERE day = "{datetime.now(tz=timezone).date()}" """, type_filter
     elif 'WEEK' in query:
-        last_monday = datetime.now().date() - timedelta(days=datetime.now().weekday())
+        last_monday = datetime.now(tz=timezone).date() - timedelta(days=datetime.now(tz=timezone).weekday())
         return 'weekly', f"""WHERE day >= "{last_monday}" """, type_filter
     elif 'MONTH' in query:
-        return 'monthly', f"""WHERE day >= "{datetime.now().date().replace(day=1)}" """, type_filter
+        return 'monthly', f"""WHERE day >= "{datetime.now(tz=timezone).date().replace(day=1)}" """, type_filter
     elif 'YEAR' in query:
-        return 'yearly', f"""WHERE day >= "{datetime.now().date().replace(month=1, day=1)}" """, type_filter
-
+        return 'yearly', f"""WHERE day >= "{datetime.now(tz=timezone).date().replace(month=1, day=1)}" """, type_filter
+    elif 'ALL' in query:
+        return 'all', '', type_filter
 
 def calculate_points(database, users_df, users_durations, length_of_walk_in_minutes, max_duration_points, start_hour):
     # TODO: move this function to a class that contains our walk constants

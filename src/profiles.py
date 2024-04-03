@@ -16,7 +16,10 @@ class ProfileCommands(commands.Cog):
         self.__sections = ['days', 'wins', 'times', 'points']
         self.__walkers = None
         self.__walk_start_date = datetime(2024, 1, 1, tzinfo=pytz.timezone('US/Pacific'))
-        self.__total_number_of_days = (datetime.now(tz=pytz.timezone('US/Pacific')) - self.__walk_start_date).days
+        self.__total_number_of_days = self.__get_total_number_of_days()
+
+    def __get_total_number_of_days(self):
+        return (datetime.now(tz=pytz.timezone('US/Pacific')) - self.__walk_start_date).days
 
     @commands.command()
     async def profile(self, ctx, name: str = ''):
@@ -24,7 +27,7 @@ class ProfileCommands(commands.Cog):
         if name != '' and not get(self.__walkers, name=name) and name not in self.__sections:
             await ctx.send(f"**{name}** is not a walker")
             return
-        self.__total_number_of_days = (datetime.now() - self.__walk_start_date).days
+        self.__total_number_of_days = self.__get_total_number_of_days()
         member = get(self.__walkers, name=name) or ctx.author
         winner_df = self.__get_winner_df()
         user_joins_df = self.__get_user_joins_df(member.name)

@@ -54,25 +54,6 @@ class LarrysTasks(commands.Cog):
                 await play_song(voice_client, f'data/songs/first_of_the_month.mp3', self.bot.backend_client, 21, 41, True)
 
     @tasks.loop(hours=24)
-    async def draw_card(self):
-        suits = ['♠', '♥', '♦', '♣']
-        ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-
-        # # Create a deck of cards
-        # deck = [f'{rank}{suit}' for suit in suits for rank in ranks]
-
-        # # Draw a random card from the deck
-        # card = random.choice(deck)
-
-        # Unicode for playing cards
-        suit = random.choice(suits)
-        rank = random.choice(ranks)
-        suit_str = f"\_\_\_\_\_\n|{suit}      |\n|    {rank}    |\n|      {suit}|\n\_\_\_\_\_"
-
-        text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
-        await text_channel.send("Card of the day is:\n" + suit_str)
-
-    @tasks.loop(hours=24)
     async def determine_daily_winner(self):
         voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
@@ -125,17 +106,6 @@ class LarrysTasks(commands.Cog):
             target_time += timedelta(days=1)
         print('Waiting until', target_time)
         print(f'wait time: {(target_time - now).total_seconds()}')
-        await asyncio.sleep((target_time - now).total_seconds())
-
-    @draw_card.before_loop
-    async def before_draw_card(self):
-        now = datetime.datetime.now()
-        now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now, hour=6, minute=45, second=0, microsecond=0)
-        if now > target_time:
-            target_time += timedelta(days=1)
-        print('Drawing card at', target_time)
-        print(f'wait time for draw card: {(target_time - now).total_seconds()}')
         await asyncio.sleep((target_time - now).total_seconds())
 
     @determine_monthly_winner.before_loop

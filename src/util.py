@@ -124,9 +124,10 @@ async def determine_winner(db, *args):
 
 
 async def play_song(voice_client, file_path: str, backend_client, duration: int = 16, start_second: int = 15,
-                    disconnect_after_song: bool = True):
+                    disconnect_after_song: bool = True, download=True):
     print(file_path)
-    backend_client.download_file(file_path)
+    if download:
+        backend_client.download_file(file_path)
     voice_client.play(discord.FFmpegPCMAudio(file_path, options=f'-ss {start_second}'))
     await asyncio.sleep(duration)
     voice_client.stop()

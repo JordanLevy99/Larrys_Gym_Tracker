@@ -11,6 +11,7 @@ from src.commands import LarrysCommands, DebugCommands
 from src.profiles import ProfileCommands
 from src.tasks import LarrysTasks
 from src.events import LarrysEvents
+from src.tts import TTSTasks
 from src.types import BotConstants, WalkArgs, Songs, ROOT_PATH
 from src.util import download
 
@@ -59,5 +60,6 @@ class LarrysBot:
         await self.discord_client.add_cog(LarrysCommands(self))
         await self.discord_client.add_cog(LarrysTasks(self))
         await self.discord_client.add_cog(ProfileCommands(self))
+        await self.discord_client.add_cog(TTSTasks(self))
         if self.args.test:
             await self.discord_client.add_cog(DebugCommands(self))

@@ -14,7 +14,7 @@ class LarrysEvents(commands.Cog):
         print(f'We have logged in as {self.bot.discord_client.user}')
         self.bot.discord_client.cogs['LarrysTasks'].determine_daily_winner.start()
         self.bot.discord_client.cogs['LarrysTasks'].determine_monthly_winner.start()
-        self.bot.discord_client.cogs['LarrysTasks'].draw_card.start()
+        self.bot.discord_client.cogs['TTSTasks'].exercise_of_the_day.start()
         download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         print(pd.read_sql_query("SELECT * FROM voice_log", self.bot.database.connection).tail())
 

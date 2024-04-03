@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import discord
 import pandas as pd
+import pytz
 from discord.ext import commands
 from discord.utils import get
 
@@ -14,8 +15,8 @@ class ProfileCommands(commands.Cog):
         self.bot = bot
         self.__sections = ['days', 'wins', 'times', 'points']
         self.__walkers = None
-        self.__walk_start_date = datetime(2024, 1, 1)
-        self.__total_number_of_days = (datetime.now() - self.__walk_start_date).days
+        self.__walk_start_date = datetime(2024, 1, 1, tzinfo=pytz.timezone('US/Pacific'))
+        self.__total_number_of_days = (datetime.now(tz=pytz.timezone('US/Pacific')) - self.__walk_start_date).days
 
     @commands.command()
     async def profile(self, ctx, name: str = ''):

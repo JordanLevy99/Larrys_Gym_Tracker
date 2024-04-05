@@ -60,3 +60,9 @@ class Database:
         # Create table if it doesn't exist
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS points
                         (name text, id text, points_awarded float, day datetime, type text)''')
+
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_of_the_day
+                        (exercise text, date datetime, response text)''')
+
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_log
+                        (name text, id text, exercise text, time datetime)''')

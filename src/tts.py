@@ -67,6 +67,13 @@ class TTSTasks(commands.Cog):
                             start_second=0, download=False)
         text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
         await text_channel.send(response)
+
+        self.bot.database.cursor.execute(f"INSERT INTO exercise_of_the_day (exercise, date, response) "
+                                         f"VALUES (?, ?, ?)", (random_exercise,
+                                                               datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date(),
+                                                               response))
+        self.bot.database.connection.commit()
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         # await ctx.send(response.choices[0].text)
 
     @exercise_of_the_day.before_loop
@@ -82,6 +89,34 @@ class TTSTasks(commands.Cog):
         print('for exercise of the day, we wait until', target_time)
         print(f'exercise of the day wait time: {(target_time - now).total_seconds()}')
         await asyncio.sleep((target_time - now).total_seconds())
+
+    @commands.command()
+    async def done(self, ctx):
+        if self.__exercise_already_logged(ctx):
+            await ctx.send('You already logged your exercise for today.')
+            return
+
+        current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
+        current_date = current_time.date()
+        current_time = current_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+        daily_exercise = self.bot.database.cursor.execute(f"SELECT exercise FROM exercise_of_the_day "
+                                                           f"WHERE date = "
+                                                           f"'{current_date}'").fetchone()[0]
+        self.bot.database.cursor.execute(f"INSERT INTO exercise_log (name, id, exercise, time)"
+                                         f" VALUES (?, ?, ?, ?)", (ctx.author.name, ctx.author.id,
+                                         daily_exercise, current_time))
+        self.bot.database.connection.commit()
+        await ctx.send(f'{ctx.author.name} has logged their exercise for today: {daily_exercise} at {current_time}')
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+
+    def __exercise_already_logged(self, ctx):
+        current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
+        current_date = current_time.date()
+        return self.bot.database.cursor.execute(f"SELECT  name, id, exercise, date FROM " 
+                                                f"(SELECT name, id, exercise, DATE(time) as date "
+                                                f"FROM exercise_log)"
+                                                f"WHERE date = "
+                                                f"'{current_date}' AND id = {ctx.author.id}").fetchone()
 
     def __produce_tts_audio(self, response, speech_file_path):
         response = self.client.audio.speech.create(

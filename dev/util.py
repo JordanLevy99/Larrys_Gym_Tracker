@@ -65,13 +65,22 @@ if __name__ == '__main__':
                     (name text, id int, exercise text, time datetime)''')
 
 
-    response = "Rise and shine! For a burst of morning energy, sprinkle in 50 burpees over 5 minutes. That's 10 invigorating leaps per minute to kickstart your day!"
+    exercise_of_the_day_df = pd.read_sql_query("SELECT * FROM exercise_of_the_day", conn)
+    exercise = "Mountain Climbers"
+    response = "Rise and shine with a burst of energy! For your 5-minute morning spark, tackle mountain climbers at a vigorous pace of 30 seconds on, 10 seconds off. Aim for 5 rounds to scale those morning heights!"
     date = datetime.now().date()
-    exercise = "Burpees"
-    # insert_query = f"""INSERT INTO exercise_of_the_day (?, ?, ?)"""
-
-    cursor.execute('INSERT INTO exercise_of_the_day (exercise, date, response) VALUES (?, ?, ?)',
-                   (exercise, date, response))
+    print(date)
+    print(exercise_of_the_day_df)
+    print(exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == date)])
+    exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == str(date)), 'response'] = response
+    exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == str(date)), 'exercise'] = exercise
+    print(exercise_of_the_day_df)
+    exercise_of_the_day_df.to_sql('exercise_of_the_day', conn, if_exists='replace', index=False)
+    # exercise = "Burpees"
+    # # insert_query = f"""INSERT INTO exercise_of_the_day (?, ?, ?)"""
+    #
+    # cursor.execute('INSERT INTO exercise_of_the_day (exercise, date, response) VALUES (?, ?, ?)',
+    #                (exercise, date, response))
 
     # delete_query = f"""DELETE FROM points
     #                 WHERE name = 'bemno'

@@ -34,7 +34,7 @@ class ProfileCommands(commands.Cog):
         user_points_df = self.__get_user_points_df(member.name)
 
         profile_data = {
-            'days': (len(user_joins_df), self.__total_number_of_days),
+            'days': (user_joins_df, self.__total_number_of_days),
             'wins': (winner_df, len(user_joins_df), member, self.__total_number_of_days),
             'times': (user_joins_df,),
             'points': (user_points_df,)
@@ -132,15 +132,53 @@ class ProfileDays(Profile):
 
     def __init__(self, data):
         super().__init__(data)
-        self.days_joined, self.__total_number_of_days = data[0], data[1]
+        self.user_joins_df, self.__total_number_of_days = data[0], data[1]
+        self.days_joined = len(self.user_joins_df)
 
     def generate(self):
         number_of_days_joined = f'Number of days joined: **{self.days_joined}** out of **{self.__total_number_of_days}** possible days'
         percentage_days_joined = f'Percentage of days joined: **{self.days_joined / self.__total_number_of_days * 100:.2f}%**'
         days = f"\n\n**Days**" \
+               f"\n\t{self.get_latest_streak()}" \
+               f"\n\t{self.get_longest_streak()}" \
                f"\n\t{number_of_days_joined}" \
                f"\n\t{percentage_days_joined}"
         return days
+
+    def get_days_in_a_row(self):
+        self.user_joins_df['day'] = pd.to_datetime(self.user_joins_df['day'])
+        self.user_joins_df['next_day'] = self.user_joins_df['day'].shift(-1)
+        self.user_joins_df['next_day'] = self.user_joins_df['next_day'].fillna(pd.to_datetime('2024-01-01'))
+
+        self.user_joins_df['diff'] = (self.user_joins_df['next_day'] - self.user_joins_df['day']).dt.days
+        self.user_joins_df['is_consecutive'] = self.user_joins_df['diff'] == 1
+        self.user_joins_df['group'] = (~self.user_joins_df['is_consecutive']).cumsum()
+        streak_day_counts = self.user_joins_df.groupby('group')['day'].count()
+
+        return streak_day_counts
+
+    def get_longest_streak(self):
+        streak_day_counts = self.get_days_in_a_row()
+        max_days_in_a_row = streak_day_counts.max()
+        range_of_days = self.__get_range_of_days(streak_day_counts.idxmax())
+        print(self.user_joins_df.groupby('group')['day'].count().idxmax())
+        return 'Longest Streak: ' + self.get_streak_text(max_days_in_a_row, range_of_days)
+
+    def get_latest_streak(self):
+        streak_day_counts = self.get_days_in_a_row()
+        latest_streak_idx = streak_day_counts.index[-1]
+        latest_days_in_a_row = streak_day_counts.loc[latest_streak_idx]
+        range_of_days = self.__get_range_of_days(latest_streak_idx)
+        return 'Latest Streak: ' + self.get_streak_text(latest_days_in_a_row, range_of_days)
+
+    @staticmethod
+    def get_streak_text(days_in_a_row, range_of_days):
+        return f'**{days_in_a_row}** days in a row {range_of_days}'
+
+    def __get_range_of_days(self, group_idx):
+        streak_days = self.user_joins_df.query(f'group == {group_idx}')['day']
+        return f'from **{streak_days.min().strftime("%B %d")}** to **{streak_days.max().strftime("%B %d")}**'
+
 
 
 class ProfileWins(Profile):

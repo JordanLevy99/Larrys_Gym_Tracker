@@ -58,24 +58,29 @@ if __name__ == '__main__':
     # cursor.execute(delete_query)
 
     # cursor.execute('''DROP TABLE exercise_of_the_day''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_of_the_day
-                    (exercise text, date datetime, response text)''')
 
-    cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_log
-                    (name text, id int, exercise text, time datetime)''')
-
-
-    exercise_of_the_day_df = pd.read_sql_query("SELECT * FROM exercise_of_the_day", conn)
-    exercise = "Mountain Climbers"
-    response = "Rise and shine with a burst of energy! For your 5-minute morning spark, tackle mountain climbers at a vigorous pace of 30 seconds on, 10 seconds off. Aim for 5 rounds to scale those morning heights!"
-    date = datetime.now().date()
-    print(date)
-    print(exercise_of_the_day_df)
-    print(exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == date)])
-    exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == str(date)), 'response'] = response
-    exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == str(date)), 'exercise'] = exercise
-    print(exercise_of_the_day_df)
-    exercise_of_the_day_df.to_sql('exercise_of_the_day', conn, if_exists='replace', index=False)
+    points_df = pd.read_sql_query("SELECT * FROM points", conn)
+    points_df.loc[(points_df['name'] == 'dinkstar') & (points_df['day'] == '2024-04-11') & (points_df['type'] == 'DURATION'), 'points_awarded'] = 50
+    points_df.loc[(points_df['name'] == 'bemno') & (points_df['day'] == '2024-04-05'), 'points_awarded'] = 0
+    points_df.to_sql('points', conn, if_exists='replace', index=False)
+    # cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_of_the_day
+    #                 (exercise text, date datetime, response text)''')
+    #
+    # cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_log
+    #                 (name text, id int, exercise text, time datetime)''')
+    #
+    #
+    # exercise_of_the_day_df = pd.read_sql_query("SELECT * FROM exercise_of_the_day", conn)
+    # exercise = "Mountain Climbers"
+    # response = "Rise and shine with a burst of energy! For your 5-minute morning spark, tackle mountain climbers at a vigorous pace of 30 seconds on, 10 seconds off. Aim for 5 rounds to scale those morning heights!"
+    # date = datetime.now().date()
+    # print(date)
+    # print(exercise_of_the_day_df)
+    # print(exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == date)])
+    # exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == str(date)), 'response'] = response
+    # exercise_of_the_day_df.loc[(exercise_of_the_day_df['date'] == str(date)), 'exercise'] = exercise
+    # print(exercise_of_the_day_df)
+    # exercise_of_the_day_df.to_sql('exercise_of_the_day', conn, if_exists='replace', index=False)
     # exercise = "Burpees"
     # # insert_query = f"""INSERT INTO exercise_of_the_day (?, ?, ?)"""
     #

@@ -41,13 +41,10 @@ class ProfileCommands(commands.Cog):
         }
         profile = ''
         if name.lower() in self.__sections:
-            name = name.lower()
-            profile += ProfileFactory().create(name, profile_data[name]).generate()
-            await ctx.send(profile)
-            return
+            self.__sections = [name.lower()]
         for section in self.__sections:
             profile += ProfileFactory().create(section, profile_data[section]).generate()
-        await ctx.send(f"**{member.display_name}**'s Stats:{profile}")
+        await ctx.send(profile)
 
     def __get_user_points_by_type_df(self, name):
         name = name.replace("'", "''")
@@ -255,7 +252,10 @@ class ProfilePoints(Profile):
         self.__points += f"\n\t\tAverage points per weekday: **{average_daily_points:.2f}**"
         average_points_per_day = points_df.groupby('weekday').agg(
             {'total_points': 'mean'})
-        average_points_per_day = average_points_per_day.loc[day_order, :].reset_index()
+        try:
+            average_points_per_day = average_points_per_day.loc[day_order, :].reset_index()
+        except KeyError:
+            pass
 
         for row in average_points_per_day.iterrows():
             self.__points += f"\n\t\t\t{row[1]['weekday']}: **{row[1]['total_points']:.2f}**"

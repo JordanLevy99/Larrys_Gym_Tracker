@@ -40,6 +40,16 @@ class TTSTasks(commands.Cog):
             'Yoga pose holds',
             'Mountain climbers',
             'Burpees',
+            'Lunges',
+            'Wall sit',
+            'Side plank',
+            'Russian twists',
+            'Superman',
+            'Leg lifts',
+            'Bicycle crunches',
+            'Flutter kicks',
+            'V-ups',
+            'Reverse crunches',
         ]
         random_exercise = random.choice(exercises)
         print(random_exercise)
@@ -82,7 +92,7 @@ class TTSTasks(commands.Cog):
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
         target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=self.bot.walk_constants.WINNER_MINUTE+8, second=0,
+                                                minute=45, second=0,
                                                 microsecond=0)
         if now > target_time:
             target_time += datetime.timedelta(days=1)
@@ -91,7 +101,7 @@ class TTSTasks(commands.Cog):
         await asyncio.sleep((target_time - now).total_seconds())
 
     @commands.command()
-    async def done(self, ctx):
+    async def log_exercise(self, ctx):
         if self.__exercise_already_logged(ctx):
             await ctx.send('You already logged your exercise for today.')
             return

@@ -23,6 +23,7 @@ class ProfileCommands(commands.Cog):
 
     @commands.command()
     async def profile(self, ctx, name: str = ''):
+        self.__sections = ['days', 'wins', 'times', 'points']
         self.__walkers = discord.utils.get(ctx.guild.roles, name='Walker').members
         if name != '' and not get(self.__walkers, name=name) and name not in self.__sections:
             await ctx.send(f"**{name}** is not a walker")
@@ -39,6 +40,7 @@ class ProfileCommands(commands.Cog):
             'times': (user_joins_df,),
             'points': (user_points_df,)
         }
+        print(profile_data)
         profile = ''
         if name.lower() in self.__sections:
             self.__sections = [name.lower()]

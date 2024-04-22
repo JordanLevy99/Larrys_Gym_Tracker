@@ -22,8 +22,9 @@ class ProfileCommands(commands.Cog):
         return (datetime.now(tz=pytz.timezone('US/Pacific')) - self.__walk_start_date).days
 
     @commands.command()
-    async def profile(self, ctx, name: str = ''):
-        self.__sections = ['days', 'wins', 'times', 'points']
+    async def profile(self, ctx, *args):
+        query = ' '.join(args)
+        name = self.__parse_query(query)
         self.__walkers = discord.utils.get(ctx.guild.roles, name='Walker').members
         if name != '' and not get(self.__walkers, name=name) and name not in self.__sections:
             await ctx.send(f"**{name}** is not a walker")
@@ -41,11 +42,19 @@ class ProfileCommands(commands.Cog):
             'points': (user_points_df,)
         }
         profile = ''
-        if name.lower() in self.__sections:
-            self.__sections = [name.lower()]
         for section in self.__sections:
             profile += ProfileFactory().create(section, profile_data[section]).generate()
         await ctx.send(profile)
+
+    def __parse_query(self, query):
+        self.__sections = ['days', 'wins', 'times', 'points']  # resets state for sections
+        query = query.split()
+        if len(query) > len(self.__sections)+1:
+            raise ValueError('Too many arguments')
+        name = query[0] if query and query[0] not in self.__sections else ''
+        if len(query) > 1:
+            self.__sections = query[1:]
+        return name
 
     def __get_user_points_by_type_df(self, name):
         name = name.replace("'", "''")

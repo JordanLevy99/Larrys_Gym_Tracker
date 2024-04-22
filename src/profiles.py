@@ -145,11 +145,13 @@ class ProfileDays(Profile):
     def get_days_in_a_row(self):
         self.user_joins_df['day'] = pd.to_datetime(self.user_joins_df['day'])
         self.user_joins_df['next_day'] = self.user_joins_df['day'].shift(-1)
-        self.user_joins_df['next_day'] = self.user_joins_df['next_day'].fillna(pd.to_datetime('2024-01-01'))
+        self.user_joins_df['next_day'] = self.user_joins_df['next_day'].fillna(pd.to_datetime(datetime.now().date()+timedelta(days=1)))
 
         self.user_joins_df['diff'] = (self.user_joins_df['next_day'] - self.user_joins_df['day']).dt.days
         self.user_joins_df['is_consecutive'] = self.user_joins_df['diff'] == 1
-        self.user_joins_df['group'] = (~self.user_joins_df['is_consecutive']).cumsum()
+        self.user_joins_df['is_consecutive_shifted'] = self.user_joins_df['is_consecutive'].shift(fill_value=False)
+
+        self.user_joins_df['group'] = (~self.user_joins_df['is_consecutive_shifted']).cumsum()
         streak_day_counts = self.user_joins_df.groupby('group')['day'].count()
 
         return streak_day_counts
@@ -158,7 +160,6 @@ class ProfileDays(Profile):
         streak_day_counts = self.get_days_in_a_row()
         max_days_in_a_row = streak_day_counts.max()
         range_of_days = self.__get_range_of_days(streak_day_counts.idxmax())
-        print(self.user_joins_df.groupby('group')['day'].count().idxmax())
         return 'Longest Streak: ' + self.get_streak_text(max_days_in_a_row, range_of_days)
 
     def get_latest_streak(self):

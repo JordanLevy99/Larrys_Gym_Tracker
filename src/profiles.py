@@ -40,7 +40,6 @@ class ProfileCommands(commands.Cog):
             'times': (user_joins_df,),
             'points': (user_points_df,)
         }
-        print(profile_data)
         profile = ''
         if name.lower() in self.__sections:
             self.__sections = [name.lower()]

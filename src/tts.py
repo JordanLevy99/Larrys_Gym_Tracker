@@ -1,64 +1,114 @@
 import asyncio
 import datetime
 import os
-import random
 from pathlib import Path
 
 import discord
-import openai
+import numpy as np
 import pytz
-from discord.ext import commands, tasks
-from dotenv import load_dotenv
+from discord.ext import commands
 from openai import OpenAI
 
 from src.types import ROOT_PATH
 from src.util import play_song, upload
+from mutagen.mp3 import MP3
+
+
+class ExerciseOfTheDayResponseParser:
+    """
+    Parses the formatted response for exercise of the day into the following fields:
+    - Exercise
+    - Sets
+    - Reps
+    - Duration
+    - Points
+    """
+    def __init__(self, response):
+        self.response = response
+        self.exercise_map = {
+        'exercise': '',
+        'sets': '',
+        'reps': '',
+        'duration': '',
+        'difficulty': '',
+        'points': ''
+        }
+
+    def parse(self):
+        response = self.response.split('\n')
+        response = response[1:]
+        for line in response:
+            line = line.split(':')
+            key = line[0].strip().lower()
+            value = line[1].strip().strip('**').replace('N/A', '')
+            self.exercise_map[key] = value
+        return self.exercise_map
 
 
 class TTSTasks(commands.Cog):
-    DEFAULT_SYSTEM_MESSAGE = ("Calculate the reps for exercises I list, aiming for a 5-minute workout duration. "
-                              "Responses should be brief, creative, and suitable for a morning walk announcement. "
-                              "Keep it under 3 sentences.")
+    # DEFAULT_SYSTEM_MESSAGE = ("You are an assistant that is designed to motivate people who are on their morning walk"
+    #                           " to do the exercise of the day. I will give you a difficulty (Easy, Medium, Hard, or "
+    #                           "Expert) and the previous day's exercise (or N/A), and you will give me an exercise one "
+    #                           "could reasonably do in their home/apartment in 5-20 minutes without equipment that "
+    #                           "matches the difficulty level and is different from yesterday's exercise. Announce the "
+    #                           "exercise, reps and/or duration, and the number of points awarded in a motivational, "
+    #                           "competitive, concise, and clearly defined manner.")
+
+    FULL_RESPONSE_SYSTEM_MESSAGE = ("You are an assistant that is designed to motivate people who are on their morning walk"
+                              " to do the exercise of the day. Announce the exercise, reps and/or duration, and the "
+                              "number of points awarded from the user message in a motivational, "
+                              "competitive, concise manner with some flair.")
+
+    FORMATTED_RESPONSE_SYSTEM_MESSAGE  = ('Given a difficulty ranging from easy to extreme '
+                                          '(with medium and hard inbetween), points awarded, '
+                                          'and the previous day\'s exercise you will create a unique exercise '
+                                          'that can be completed in one\'s home/apartment in 5-20 minutes '
+                                          '(depending on the difficulty), is different from the previous day\'s '
+                                          'exercise, and formatted in the following way with no extra text:'
+                                        '"Exercise: **{name_of_exercise}**\n'
+                                        '\tSets: **{number_of_sets}**\n'
+                                        '\tReps: **{number_of_reps}**\n'
+                                        '\tDuration: **{duration_per_set_or_total_duration_in_minutes_or_seconds}**\n'
+                                        '\tDifficulty: **{difficulty}**\n'
+                                        '\tPoints: **{points_awarded}**" '
+                                        'If any of this information is not needed for this exercise, output N/A for that field.')
 
     def __init__(self, bot):
         self.bot = bot
         self.client = OpenAI(
             api_key=os.environ.get("OPENAI_API_KEY"),
         )
+        self.exercise_map = {}
 
     @tasks.loop(hours=24)
-    async def exercise_of_the_day(self):
-        exercises = [
-            'Stare at a wall for 5 minutes',
-            'Squats',
-            'Pushups',
-            'Jumping Jacks',
-            'Planks',
-            # 'Jump rope',
-            'Scorpion plank hold',
-            'Boxing punches',
-            'Yoga pose holds',
-            'Mountain climbers',
-            'Burpees',
-            'Lunges',
-            'Wall sit',
-            'Side plank',
-            'Russian twists',
-            'Superman',
-            'Leg lifts',
-            'Bicycle crunches',
-            'Flutter kicks',
-            'V-ups',
-            'Reverse crunches',
-        ]
-        random_exercise = random.choice(exercises)
-        print(random_exercise)
-        response = self.create_chat(random_exercise)
-        print(response)
+    async def exercise_of_the_day(self, ctx):
+        difficulty_points_map = {
+            'Easy': 10,
+            'Medium': 25,
+            'Hard': 50,
+            'Extreme': 100
+        }
+        previous_exercise = self.__get_previous_exercise()
+        difficulty = np.random.choice(list(difficulty_points_map.keys()), p=[0.3, 0.5, 0.18, 0.02])
+        points = difficulty_points_map[difficulty]
+        user_message = f"Previous day's exercise: {previous_exercise}\nDifficulty: {difficulty}\nPoints Awarded: {points}"
+        print(user_message)
+        tldr_response = self.create_chat(user_message,
+                                         system_message=self.FORMATTED_RESPONSE_SYSTEM_MESSAGE)
+        full_response = self.create_chat(tldr_response,
+                                         system_message=self.FULL_RESPONSE_SYSTEM_MESSAGE)
+
+        print(full_response)
         remote_speech_file_path = Path('data') / "exercise_of_the_day.mp3"
         local_speech_file_path = ROOT_PATH / remote_speech_file_path
-        self.__produce_tts_audio(response, local_speech_file_path)
+        self.__produce_tts_audio(full_response, local_speech_file_path)
 
+        tldr_response = 'tldr:\n\t' + tldr_response
+        print(tldr_response)
+
+        def get_duration(file_path):
+            audio = MP3(file_path)
+            return audio.info.length
 
         # TODO: make a utility function to connect to the voice channel
         voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
@@ -72,19 +122,37 @@ class TTSTasks(commands.Cog):
                     f'Already connected to a voice channel.')
 
             voice_client = self.bot.discord_client.voice_clients[0]
-
-            await play_song(voice_client, str(remote_speech_file_path), self.bot.backend_client, duration=50,
+            text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
+            await text_channel.send(full_response)
+            await play_song(voice_client, str(remote_speech_file_path), self.bot.backend_client,
+                            duration=get_duration(local_speech_file_path),
                             start_second=0, download=False)
-        text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
-        await text_channel.send(response)
+            await text_channel.send('\n\n' + tldr_response)
 
-        self.bot.database.cursor.execute(f"INSERT INTO exercise_of_the_day (exercise, date, response) "
-                                         f"VALUES (?, ?, ?)", (random_exercise,
-                                                               datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date(),
-                                                               response))
+
+        response_parser = ExerciseOfTheDayResponseParser(tldr_response)
+        self.exercise_map = response_parser.parse()
+        self.bot.database.cursor.execute(f"INSERT INTO exercise_of_the_day (exercise, date, sets, reps, duration, difficulty, points, full_response, tldr_response) "
+                                         f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                                         (self.exercise_map['exercise'],
+                                          datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date(),
+                                          self.exercise_map['sets'], self.exercise_map['reps'],
+                                          self.exercise_map['duration'], self.exercise_map['difficulty'],
+                                          self.exercise_map['points'], full_response, tldr_response))
         self.bot.database.connection.commit()
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         # await ctx.send(response.choices[0].text)
+
+    def __get_previous_exercise(self):
+        yesterday = datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date() - datetime.timedelta(days=1)
+        try:
+            previous_exercise = self.bot.database.cursor.execute(f"""SELECT exercise FROM exercise_of_the_day 
+                                                                 WHERE date = {yesterday}""").fetchone()[0]
+        except TypeError:
+            previous_exercise = None
+        if previous_exercise is None:
+            previous_exercise = 'N/A'
+        return previous_exercise
 
     @exercise_of_the_day.before_loop
     async def before_exercise_of_the_day(self):
@@ -102,7 +170,7 @@ class TTSTasks(commands.Cog):
 
     @commands.command()
     async def log_exercise(self, ctx):
-        if self.__exercise_already_logged(ctx):
+        if self.__exercise_is_already_logged(ctx):
             await ctx.send('You already logged your exercise for today.')
             return
 
@@ -112,14 +180,24 @@ class TTSTasks(commands.Cog):
         daily_exercise = self.bot.database.cursor.execute(f"SELECT exercise FROM exercise_of_the_day "
                                                            f"WHERE date = "
                                                            f"'{current_date}'").fetchone()[0]
+        exercise_points = self.bot.database.cursor.execute(f"SELECT points FROM exercise_of_the_day "
+                                                           f"WHERE date = "
+                                                           f"'{current_date}'").fetchone()[0]
         self.bot.database.cursor.execute(f"INSERT INTO exercise_log (name, id, exercise, time)"
                                          f" VALUES (?, ?, ?, ?)", (ctx.author.name, ctx.author.id,
                                          daily_exercise, current_time))
-        self.bot.database.connection.commit()
-        await ctx.send(f'{ctx.author.name} has logged their exercise for today: {daily_exercise} at {current_time}')
-        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+        try:
+            self.bot.database.cursor.execute(f"""INSERT INTO points (name, id, points_awarded, day, type)
+                                                VALUES (?, ?, ?, ?, ?)""",
+                                             (ctx.author.name, ctx.author.id, int(exercise_points), current_date, 'EXERCISE'))
+            self.bot.database.connection.commit()
+            await ctx.send(f'{ctx.author.name} has logged their exercise for today: {daily_exercise} at {current_time} for {self.exercise_map["points"]} points!')
+            upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+        except ValueError as e:
+            print(e)
+            ctx.send('There was an error logging your exercise. Contact @dinkster for help.')
 
-    def __exercise_already_logged(self, ctx):
+    def __exercise_is_already_logged(self, ctx):
         current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
         current_date = current_time.date()
         return self.bot.database.cursor.execute(f"SELECT  name, id, exercise, date FROM " 
@@ -137,7 +215,7 @@ class TTSTasks(commands.Cog):
         response.write_to_file(speech_file_path)
         # upload(str(speech_file_path))
 
-    def create_chat(self, user_message, system_message=DEFAULT_SYSTEM_MESSAGE):
+    def create_chat(self, user_message, system_message=''):
         response = self.client.chat.completions.create(
             messages=[
                 {
@@ -150,7 +228,7 @@ class TTSTasks(commands.Cog):
                 },
             ],
             model="gpt-4-0125-preview",
-            max_tokens=150
+            temperature=0.6
         )
 
         return response.choices[0].message.content

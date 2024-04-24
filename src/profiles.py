@@ -11,10 +11,11 @@ from discord.utils import get
 
 class ProfileCommands(commands.Cog):
 
+    sections = ['days', 'streaks', 'wins', 'times', 'points']
     def __init__(self, bot):
         self.bot = bot
-        self.__sections = ['days', 'wins', 'times', 'points']
         self.__walkers = None
+        self.__sections = ProfileCommands.sections
         self.__walk_start_date = datetime(2024, 1, 1, tzinfo=pytz.timezone('US/Pacific'))
         self.__total_number_of_days = self.__get_total_number_of_days()
 
@@ -33,10 +34,11 @@ class ProfileCommands(commands.Cog):
         member = get(self.__walkers, name=name) or ctx.author
         winner_df = self.__get_winner_df()
         user_joins_df = self.__get_user_joins_df(member.name)
+        user_exercise_df = self.__get_user_exercise_df(member.name)
         user_points_df = self.__get_user_points_df(member.name)
-
         profile_data = {
             'days': (user_joins_df, self.__total_number_of_days),
+            'streaks': (user_joins_df, user_exercise_df, winner_df.query(f'name == "{member.name}"')),
             'wins': (winner_df, len(user_joins_df), member, self.__total_number_of_days),
             'times': (user_joins_df,),
             'points': (user_points_df,)
@@ -47,14 +49,25 @@ class ProfileCommands(commands.Cog):
         await ctx.send(profile)
 
     def __parse_query(self, query):
-        self.__sections = ['days', 'wins', 'times', 'points']  # resets state for sections
+        self.__sections = ProfileCommands.sections  # resets state for sections
         query = query.split()
-        if len(query) > len(self.__sections)+1:
-            raise ValueError('Too many arguments')
-        name = query[0] if query and query[0] not in self.__sections else ''
-        if len(query) > 1:
-            self.__sections = query[1:]
+        self.__validate_preconditions(query)
+        name = self.__set_name(query)
+        self.__set_sections(name, query)
         return name
+
+    def __validate_preconditions(self, query):
+        if len(query) > len(self.__sections) + 1:
+            raise ValueError('Too many arguments')
+
+    def __set_name(self, query):
+        return query[0] if query and query[0] not in self.__sections else ''
+
+    def __set_sections(self, name, query):
+        if len(query) > 1 and name == query[0]:
+            self.__sections = query[1:]
+        elif len(query) > 1 and name == '':
+            self.__sections = query
 
     def __get_user_points_by_type_df(self, name):
         name = name.replace("'", "''")
@@ -117,6 +130,22 @@ class ProfileCommands(commands.Cog):
         user_joins_df = user_joins_df.groupby(['name', 'day']).agg({'time': 'min'}).reset_index()
         return user_joins_df
 
+    def __get_user_exercise_df(self, name):
+        user_exercise_df = pd.read_sql_query(f"""
+                                        SELECT name, MIN(time) as 'time', day
+                                        FROM (
+                                            SELECT name, time, DATE(time) as 'day'
+                                            FROM exercise_log
+                                            )
+                                        WHERE name = '{name}'
+                                        GROUP BY name, day
+                                        """, self.bot.database.connection)
+        user_exercise_df['time'] = user_exercise_df['time'].apply(
+            lambda x: datetime.strptime(x, '%Y-%m-%d %H:%M:%S.%f'))
+        user_exercise_df['time'] = user_exercise_df['time'].apply(lambda x: x.time())
+        user_exercise_df = user_exercise_df.groupby(['name', 'day']).agg({'time': 'min'}).reset_index()
+        return user_exercise_df
+
     @staticmethod
     def __get_earliest_time_joined(user_joins_df):
         user_joins_df = user_joins_df.query('day > "2024-01-04"')
@@ -146,47 +175,75 @@ class ProfileDays(Profile):
         number_of_days_joined = f'Number of days joined: **{self.days_joined}** out of **{self.__total_number_of_days}** possible days'
         percentage_days_joined = f'Percentage of days joined: **{self.days_joined / self.__total_number_of_days * 100:.2f}%**'
         days = f"\n\n**Days**" \
-               f"\n\t{self.get_latest_streak()}" \
-               f"\n\t{self.get_longest_streak()}" \
                f"\n\t{number_of_days_joined}" \
                f"\n\t{percentage_days_joined}"
         return days
 
-    def get_days_in_a_row(self):
-        self.user_joins_df['day'] = pd.to_datetime(self.user_joins_df['day'])
-        self.user_joins_df['next_day'] = self.user_joins_df['day'].shift(-1)
-        self.user_joins_df['next_day'] = self.user_joins_df['next_day'].fillna(pd.to_datetime(datetime.now().date()+timedelta(days=1)))
 
-        self.user_joins_df['diff'] = (self.user_joins_df['next_day'] - self.user_joins_df['day']).dt.days
-        self.user_joins_df['is_consecutive'] = self.user_joins_df['diff'] == 1
-        self.user_joins_df['is_consecutive_shifted'] = self.user_joins_df['is_consecutive'].shift(fill_value=False)
+class ProfileStreaks(Profile):
 
-        self.user_joins_df['group'] = (~self.user_joins_df['is_consecutive_shifted']).cumsum()
-        streak_day_counts = self.user_joins_df.groupby('group')['day'].count()
+    def __init__(self, data):
+        super().__init__(data)
+        self.streaks = [StreakGenerator(data[0], 'days'), StreakGenerator(data[1], 'exercise'),
+                        StreakGenerator(data[2], 'wins')]
 
-        return streak_day_counts
+    def generate(self):
+        streaks = ''
+        for streak in self.streaks:
+            try:
+                streaks += streak.generate()
+            except ValueError:
+                pass
+            streaks += '\n'
 
-    def get_longest_streak(self):
-        streak_day_counts = self.get_days_in_a_row()
-        max_days_in_a_row = streak_day_counts.max()
-        range_of_days = self.__get_range_of_days(streak_day_counts.idxmax())
-        return 'Longest Streak: ' + self.get_streak_text(max_days_in_a_row, range_of_days)
+        return f"\n\n**Streaks**" \
+               f"{streaks}"
 
-    def get_latest_streak(self):
-        streak_day_counts = self.get_days_in_a_row()
-        latest_streak_idx = streak_day_counts.index[-1]
-        latest_days_in_a_row = streak_day_counts.loc[latest_streak_idx]
+
+class StreakGenerator:
+
+    def __init__(self, data: pd.DataFrame, name: str):
+        self.data = data
+        self.name = name
+        self.__streak_day_counts = pd.DataFrame()
+
+    def generate(self):
+        self.__get_days_in_a_row()
+        longest_streak = self.__get_longest_streak()
+        latest_streak = self.__get_latest_streak()
+        return f"\n\t{longest_streak}" \
+               f"\n\t{latest_streak}"
+
+    def __get_longest_streak(self):
+        max_days_in_a_row = self.__streak_day_counts.max()
+        range_of_days = self.__get_range_of_days(self.__streak_day_counts.idxmax())
+        return self.get_streak_text('Longest', max_days_in_a_row, range_of_days)
+
+    def __get_latest_streak(self):
+        latest_streak_idx = self.__streak_day_counts.index[-1]
+        latest_days_in_a_row = self.__streak_day_counts.loc[latest_streak_idx]
         range_of_days = self.__get_range_of_days(latest_streak_idx)
-        return 'Latest Streak: ' + self.get_streak_text(latest_days_in_a_row, range_of_days)
+        return self.get_streak_text('Latest', latest_days_in_a_row, range_of_days)
 
-    @staticmethod
-    def get_streak_text(days_in_a_row, range_of_days):
-        return f'**{days_in_a_row}** days in a row {range_of_days}'
+    def get_streak_text(self, streak_type, days_in_a_row, range_of_days):
+        return f'{streak_type} {self.name.capitalize()} streak: **{days_in_a_row}** days in a row {range_of_days}'
+
+    def __get_days_in_a_row(self):
+        self.__get_streak_groups()
+        self.__streak_day_counts = self.data.groupby('group')['day'].count()
+
+    def __get_streak_groups(self):
+        self.data['day'] = pd.to_datetime(self.data['day'])
+        self.data['next_day'] = self.data['day'].shift(-1)
+        self.data['next_day'] = self.data['next_day'].fillna(pd.to_datetime(datetime.now().date() + timedelta(days=1)))
+        self.data['diff'] = (self.data['next_day'] - self.data['day']).dt.days
+        self.data['is_consecutive'] = self.data['diff'] == 1
+        self.data['is_consecutive_shifted'] = self.data['is_consecutive'].shift(fill_value=False)
+        self.data['group'] = (~self.data['is_consecutive_shifted']).cumsum()
 
     def __get_range_of_days(self, group_idx):
-        streak_days = self.user_joins_df.query(f'group == {group_idx}')['day']
+        streak_days = self.data.query(f'group == {group_idx}')['day']
         return f'from **{streak_days.min().strftime("%B %d")}** to **{streak_days.max().strftime("%B %d")}**'
-
 
 
 class ProfileWins(Profile):
@@ -275,6 +332,7 @@ class ProfilePoints(Profile):
 class ProfileFactory:
     profile_segments = {
         'days': ProfileDays,
+        'streaks': ProfileStreaks,
         'wins': ProfileWins,
         'times': ProfileTimes,
         'points': ProfilePoints

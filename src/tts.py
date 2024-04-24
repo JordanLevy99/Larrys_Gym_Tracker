@@ -74,7 +74,7 @@ class TTSTasks(commands.Cog):
         self.exercise_map = {}
 
     @tasks.loop(hours=24)
-    async def exercise_of_the_day(self, ctx):
+    async def exercise_of_the_day(self):
         difficulty_points_map = {
             'Easy': 10,
             'Medium': 25,

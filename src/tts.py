@@ -46,13 +46,6 @@ class ExerciseOfTheDayResponseParser:
 
 
 class TTSTasks(commands.Cog):
-    # DEFAULT_SYSTEM_MESSAGE = ("You are an assistant that is designed to motivate people who are on their morning walk"
-    #                           " to do the exercise of the day. I will give you a difficulty (Easy, Medium, Hard, or "
-    #                           "Expert) and the previous day's exercise (or N/A), and you will give me an exercise one "
-    #                           "could reasonably do in their home/apartment in 5-20 minutes without equipment that "
-    #                           "matches the difficulty level and is different from yesterday's exercise. Announce the "
-    #                           "exercise, reps and/or duration, and the number of points awarded in a motivational, "
-    #                           "competitive, concise, and clearly defined manner.")
 
     FULL_RESPONSE_SYSTEM_MESSAGE = ("You are an assistant that is designed to motivate people who are on their morning walk"
                               " to do the exercise of the day. Announce the exercise, reps and/or duration, and the "
@@ -132,7 +125,9 @@ class TTSTasks(commands.Cog):
 
         response_parser = ExerciseOfTheDayResponseParser(tldr_response)
         self.exercise_map = response_parser.parse()
-        self.bot.database.cursor.execute(f"INSERT INTO exercise_of_the_day (exercise, date, sets, reps, duration, difficulty, points, full_response, tldr_response) "
+        self.bot.database.cursor.execute(f"INSERT INTO exercise_of_the_day "
+                                         f"(exercise, date, sets, reps, duration, difficulty, "
+                                         f"points, full_response, tldr_response) "
                                          f"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                          (self.exercise_map['exercise'],
                                           datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date(),
@@ -189,9 +184,11 @@ class TTSTasks(commands.Cog):
         try:
             self.bot.database.cursor.execute(f"""INSERT INTO points (name, id, points_awarded, day, type)
                                                 VALUES (?, ?, ?, ?, ?)""",
-                                             (ctx.author.name, ctx.author.id, int(exercise_points), current_date, 'EXERCISE'))
+                                             (ctx.author.name, ctx.author.id,
+                                              int(exercise_points), current_date, 'EXERCISE'))
             self.bot.database.connection.commit()
-            await ctx.send(f'{ctx.author.name} has logged their exercise for today: {daily_exercise} at {current_time} for {self.exercise_map["points"]} points!')
+            await ctx.send(f'{ctx.author.name} has logged their exercise for today: '
+                           f'{daily_exercise} at {current_time} for {self.exercise_map["points"]} points!')
             upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         except ValueError as e:
             print(e)

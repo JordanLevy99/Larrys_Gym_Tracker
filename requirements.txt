@@ -8,3 +8,4 @@ dropbox
 PyNaCl
 pytz
 openai
+mutagen

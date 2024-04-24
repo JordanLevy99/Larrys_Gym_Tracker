@@ -62,7 +62,8 @@ class Database:
                         (name text, id text, points_awarded float, day datetime, type text)''')
 
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_of_the_day
-                        (exercise text, date datetime, response text)''')
+                            (exercise text, date datetime, sets integer, reps integer, duration text, difficulty text, 
+                            points integer, full_response text, tldr_response text)''')
 
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_log
                         (name text, id text, exercise text, time datetime)''')

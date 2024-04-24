@@ -59,10 +59,18 @@ if __name__ == '__main__':
 
     # cursor.execute('''DROP TABLE exercise_of_the_day''')
 
-    points_df = pd.read_sql_query("SELECT * FROM points", conn)
-    points_df.loc[(points_df['name'] == 'dinkstar') & (points_df['day'] == '2024-04-11') & (points_df['type'] == 'DURATION'), 'points_awarded'] = 50
-    points_df.loc[(points_df['name'] == 'bemno') & (points_df['day'] == '2024-04-05'), 'points_awarded'] = 0
-    points_df.to_sql('points', conn, if_exists='replace', index=False)
+    # points_df = pd.read_sql_query("SELECT * FROM points", conn)
+    # points_df.loc[(points_df['name'] == 'dinkstar') & (points_df['day'] == '2024-04-11') & (points_df['type'] == 'DURATION'), 'points_awarded'] = 50
+    # points_df.loc[(points_df['name'] == 'bemno') & (points_df['day'] == '2024-04-05'), 'points_awarded'] = 0
+    # points_df.to_sql('points', conn, if_exists='replace', index=False)
+
+    cursor.execute("""ALTER TABLE exercise_of_the_day
+     RENAME TO exercise_of_the_day_old;""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS exercise_of_the_day
+                    (exercise text, date datetime, sets integer, reps integer, duration text, difficulty text, points integer, full_response text,
+                    tldr_response text)""")
+
+    # cursor.execute("DELETE FROM exercise_of_the_day")
     # cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_of_the_day
     #                 (exercise text, date datetime, response text)''')
     #

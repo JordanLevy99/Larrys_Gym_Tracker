@@ -9,7 +9,7 @@ import pandas as pd
 import pytz
 from discord.ext import commands, tasks
 
-from src.util import _get_current_time, play_song, determine_winner
+from src.util import _get_current_time, play_audio, determine_winner
 
 
 class LarrysTasks(commands.Cog):
@@ -50,8 +50,8 @@ class LarrysTasks(commands.Cog):
 
                 await text_channel.send(
                     f"Congrats to kyboydigital for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
-                await play_song(voice_client, f'data/songs/march_winner_2024.wav', self.bot.backend_client, 6, 0, False)
-                await play_song(voice_client, f'data/songs/first_of_the_month.mp3', self.bot.backend_client, 21, 41, True)
+                await play_audio(voice_client, f'data/songs/march_winner_2024.wav', self.bot.backend_client, 6, 0, False)
+                await play_audio(voice_client, f'data/songs/first_of_the_month.mp3', self.bot.backend_client, 21, 41, True)
 
     @tasks.loop(hours=24)
     async def determine_daily_winner(self):
@@ -84,14 +84,14 @@ class LarrysTasks(commands.Cog):
                     duration = 49
                 text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
                 await text_channel.send(f'Happy Birthday {birthday_name.capitalize()}!\n{birthday_link}')
-                await play_song(voice_client, f'data/songs/happy_birthday_{birthday_name}.mp3',
-                                self.bot.backend_client, duration, 0, disconnect_after_song=False)
+                await play_audio(voice_client, f'data/songs/happy_birthday_{birthday_name}.mp3',
+                                 self.bot.backend_client, duration, 0, disconnect_after_played=False)
 
                 time.sleep(2)
             except KeyError:
                 pass
-            await play_song(voice_client, f'data/songs/{random_winner_args[0]}', self.bot.backend_client,
-                            random_winner_args[1], random_winner_args[2])
+            await play_audio(voice_client, f'data/songs/{random_winner_args[0]}', self.bot.backend_client,
+                             random_winner_args[1], random_winner_args[2])
         else:
             print('not enough people in the vc')
 

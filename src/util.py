@@ -1,14 +1,10 @@
 import asyncio
-import shutil
-import sqlite3
 from datetime import datetime, timedelta
 from typing import Tuple
 
 import discord
 import pandas as pd
 import pytz
-from discord.ext import commands
-# from cli.main import database as db
 from src.types import BotConstants, WalkArgs
 
 
@@ -23,6 +19,8 @@ def _process_query(query, type_filter=''):
         return _process_query(query.replace('ON TIME', ''), type_filter="""WHERE type = "ON TIME" """)
     elif 'DURATION' in query:
         return _process_query(query.replace('DURATION', ''), type_filter="""WHERE type = "DURATION" """)
+    elif 'EXERCISE' in query:
+        return _process_query(query.replace('EXERCISE', ''), type_filter="""WHERE type = "EXERCISE" """)
     elif 'TODAY' in query:
         return 'daily', f"""WHERE day = "{datetime.now(tz=timezone).date()}" """, type_filter
     elif 'WEEK' in query:
@@ -35,6 +33,7 @@ def _process_query(query, type_filter=''):
     elif 'ALL' in query:
         return 'all', '', type_filter
 
+
 def calculate_points(database, users_df, users_durations, length_of_walk_in_minutes, max_duration_points, start_hour):
     # TODO: move this function to a class that contains our walk constants
     print(users_durations)
@@ -45,7 +44,7 @@ def calculate_points(database, users_df, users_durations, length_of_walk_in_minu
         lambda user: user['time'].min() - user['time'].min().replace(hour=start_hour, minute=0, second=0,
                                                                      microsecond=0)))
     on_time_points = WalkArgs.MAX_DURATION_POINTS - (late_time.dt.total_seconds()
-                                                           / (walk_time_in_seconds / 2)) * 50
+                                                     / (walk_time_in_seconds / 2)) * 50
     on_time_points.loc[on_time_points < 0] = 0
     # print('User Durations:',users_durations)
     day = users_df['day'].max()
@@ -75,7 +74,7 @@ def log_data(database, member, event_time, joining):
 
 def append_to_database(database, member, event, event_time, joined):
     database.cursor.execute("INSERT INTO voice_log VALUES (?, ?, ?, ?, ?)",
-              (member.name, member.id, event_time, event.channel.name, joined))
+                            (member.name, member.id, event_time, event.channel.name, joined))
     database.connection.commit()
 
 
@@ -90,22 +89,6 @@ def _get_current_time() -> Tuple[str, datetime]:
     join_time = pacific_time.strftime("%Y-%m-%d %H:%M:%S.%f")
     print(pacific_time)
     return join_time, pacific_time
-
-
-# def connect_to_database():
-#     # Connect to the SQLite database
-#     database = sqlite3.connect(bot_constants.DB_FILE)
-#     c = conn.cursor()
-#
-#     # Create table if it doesn't exist
-#     c.execute('''CREATE TABLE IF NOT EXISTS voice_log
-#                 (name text, id text, time datetime, channel text, user_joined boolean)''')
-#
-#     # Create table if it doesn't exist
-#     c.execute('''CREATE TABLE IF NOT EXISTS points
-#                 (name text, id text, points_awarded float, day datetime, type text)''')
-
-
 
 
 async def determine_winner(db, *args):
@@ -126,15 +109,15 @@ async def determine_winner(db, *args):
     return winner
 
 
-async def play_song(voice_client, file_path: str, backend_client, duration: int = 16, start_second: int = 15,
-                    disconnect_after_song: bool = True, download=True):
+async def play_audio(voice_client, file_path: str, backend_client, duration: int = 16, start_second: int = 15,
+                     disconnect_after_played: bool = True, download=True):
     print(file_path)
     if download:
         backend_client.download_file(file_path)
     voice_client.play(discord.FFmpegPCMAudio(file_path, options=f'-ss {start_second}'))
     await asyncio.sleep(duration)
     voice_client.stop()
-    if disconnect_after_song:
+    if disconnect_after_played:
         await voice_client.disconnect()
 
 

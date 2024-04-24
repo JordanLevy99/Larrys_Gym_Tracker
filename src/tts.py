@@ -10,7 +10,7 @@ from discord.ext import commands, tasks
 from openai import OpenAI
 
 from src.types import ROOT_PATH
-from src.util import play_song, upload
+from src.util import play_audio, upload
 from mutagen.mp3 import MP3
 
 
@@ -117,9 +117,9 @@ class TTSTasks(commands.Cog):
             voice_client = self.bot.discord_client.voice_clients[0]
             text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
             await text_channel.send(full_response)
-            await play_song(voice_client, str(remote_speech_file_path), self.bot.backend_client,
-                            duration=get_duration(local_speech_file_path),
-                            start_second=0, download=False)
+            await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client,
+                             duration=get_duration(local_speech_file_path),
+                             start_second=0, download=False)
             await text_channel.send('\n\n' + tldr_response)
 
 

@@ -114,8 +114,6 @@ class LarrysCommands(commands.Cog):
         embed.set_footer(text=leaderboard_table)
         await ctx.send(embed=embed)
 
-        # await ctx.send(f'```{leaderboard_table}```')
-
     @staticmethod
     def __get_leaderboard_query(points_column, type_filter, time_filter):
         return f"""SELECT name, SUM(points_awarded) as '{points_column}', COUNT(DISTINCT day) as 'days'
@@ -133,7 +131,7 @@ class LarrysCommands(commands.Cog):
 
         leaderboard_series.name = points_column
         leaderboard_df = leaderboard_series.to_frame()
-        return leaderboard_df
+        return leaderboard_df.reset_index().rename(columns={'index': 'name'})
 
     async def update_points(self, ctx, current_time):
         # Groupby name and id, extract day from date and groupby day, subtract max and min time to get duration

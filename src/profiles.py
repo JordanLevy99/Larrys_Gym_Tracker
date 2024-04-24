@@ -66,7 +66,7 @@ class ProfileCommands(commands.Cog):
     def __set_sections(self, name, query):
         if len(query) > 1 and name == query[0]:
             self.__sections = query[1:]
-        elif len(query) > 1 and name == '':
+        elif name == '':
             self.__sections = query
 
     def __get_user_points_by_type_df(self, name):
@@ -195,7 +195,7 @@ class ProfileStreaks(Profile):
             except ValueError:
                 pass
             streaks += '\n'
-
+        streaks = streaks.rstrip('\n')
         return f"\n\n**Streaks**" \
                f"{streaks}"
 

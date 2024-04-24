@@ -6,7 +6,7 @@ from pathlib import Path
 import discord
 import numpy as np
 import pytz
-from discord.ext import commands
+from discord.ext import commands, tasks
 from openai import OpenAI
 
 from src.types import ROOT_PATH

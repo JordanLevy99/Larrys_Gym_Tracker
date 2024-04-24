@@ -36,10 +36,9 @@ class ProfileCommands(commands.Cog):
         user_joins_df = self.__get_user_joins_df(member.name)
         user_exercise_df = self.__get_user_exercise_df(member.name)
         user_points_df = self.__get_user_points_df(member.name)
-
         profile_data = {
             'days': (user_joins_df, self.__total_number_of_days),
-            'streaks': (user_joins_df, user_exercise_df),
+            'streaks': (user_joins_df, user_exercise_df, winner_df.query(f'name == "{member.name}"')),
             'wins': (winner_df, len(user_joins_df), member, self.__total_number_of_days),
             'times': (user_joins_df,),
             'points': (user_points_df,)
@@ -185,12 +184,16 @@ class ProfileStreaks(Profile):
 
     def __init__(self, data):
         super().__init__(data)
-        self.streaks = [StreakGenerator(data[0], 'days'), StreakGenerator(data[1], 'exercise')]
+        self.streaks = [StreakGenerator(data[0], 'days'), StreakGenerator(data[1], 'exercise'),
+                        StreakGenerator(data[2], 'wins')]
 
     def generate(self):
         streaks = ''
         for streak in self.streaks:
-            streaks += streak.generate()
+            try:
+                streaks += streak.generate()
+            except ValueError:
+                pass
             streaks += '\n'
 
         return f"\n\n**Streaks**" \

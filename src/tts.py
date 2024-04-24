@@ -155,7 +155,7 @@ class TTSTasks(commands.Cog):
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
         target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=53, second=0,
+                                                minute=45, second=0,
                                                 microsecond=0)
         if now > target_time:
             target_time += datetime.timedelta(days=1)

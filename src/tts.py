@@ -188,7 +188,7 @@ class TTSTasks(commands.Cog):
                                               int(exercise_points), current_date, 'EXERCISE'))
             self.bot.database.connection.commit()
             await ctx.send(f'{ctx.author.name} has logged their exercise for today: '
-                           f'{daily_exercise} at {current_time} for {int(exercise_points)} points!')
+                           f'**{daily_exercise}** at **{current_time}** for **{int(exercise_points)}** points!')
             upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         except ValueError as e:
             print(e)

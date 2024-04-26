@@ -9,3 +9,4 @@ PyNaCl
 pytz
 openai
 mutagen
+finnhub-python

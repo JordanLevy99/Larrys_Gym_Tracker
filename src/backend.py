@@ -1,5 +1,7 @@
 import os
 import sqlite3
+from pathlib import Path
+from typing import Union
 
 import dropbox
 from dotenv import load_dotenv
@@ -50,10 +52,14 @@ class Dropbox:
 
 
 class Database:
-    def __init__(self, bot_constants: BotConstants):
-        self.connection = sqlite3.connect(bot_constants.DB_FILE)
+    def __init__(self, db_file: str):
+        self.connection = sqlite3.connect(db_file)
         self.cursor = self.connection.cursor()
 
+
+class LarrysDatabase(Database):
+    def __init__(self, db_file: str):
+        super().__init__(db_file)
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS voice_log
                         (name text, id text, time datetime, channel text, user_joined boolean)''')
 
@@ -67,3 +73,30 @@ class Database:
 
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_log
                         (name text, id text, exercise text, time datetime)''')
+
+
+class LarrysStockExchange(Database):
+    def __init__(self, db_file: str):
+        super().__init__(db_file)
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS User (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            net_worth REAL NOT NULL,
+            current_balance REAL NOT NULL
+        );''')
+
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS Transactions (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER,
+            symbol TEXT NOT NULL,
+            transaction_type TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            price REAL NOT NULL,
+            transaction_date TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES User(id)
+        );''')
+
+    def get_user_portfolio(self, user_id):
+        self.cursor.execute("SELECT * FROM User WHERE id = ?", (user_id,))
+        user = self.cursor.fetchone()
+        return Portfolio(user)

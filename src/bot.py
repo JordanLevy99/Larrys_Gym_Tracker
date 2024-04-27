@@ -6,8 +6,9 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from cli.args import parse_args
-from src.backend import Dropbox, Database
+from src.backend import Dropbox, Database, LarrysDatabase, LarrysStockExchange
 from src.commands import LarrysCommands, DebugCommands
+from src.extensions.larrys_stock_trader import FinnhubAPI
 from src.profiles import ProfileCommands
 from src.tasks import LarrysTasks
 from src.events import LarrysEvents
@@ -36,10 +37,12 @@ class LarrysBot:
             self.bot_constants.DB_FILE = 'test.db'
             self.bot_constants.DB_PATH = ROOT_PATH / 'data' / self.bot_constants.DB_FILE
         print('these are the bot constants:', self.bot_constants.__dict__)
-        self.database = Database(self.bot_constants)
+        load_dotenv()
+        self.database = LarrysDatabase(self.bot_constants.DB_FILE)
+        self.stock_exchange_database = LarrysStockExchange(self.bot_constants.STOCK_DB_FILE)
+        self.stock_api = FinnhubAPI(os.getenv('FINNHUB_API_KEY'))
         self.walk_constants = WalkArgs()
         self.songs = Songs()
-        load_dotenv()
         self.bot_constants.TOKEN = os.getenv('BOT_TOKEN')
         self.backend_client = Dropbox()
 

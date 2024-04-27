@@ -15,7 +15,7 @@ class BotConstants:
     TEXT_CHANNEL_ID: int = 1193971930794045544
     VOICE_CHANNEL_ID: int = 1143972564616626209
     DB_PATH: Path = ROOT_PATH / 'data' / DB_FILE
-    STOCK_DB_FILE: str = 'larrys_stocks.db'
+    STOCK_DB_FILE: str = 'larrys_stock_exchange.db'
 
 
 @dataclass

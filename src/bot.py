@@ -22,6 +22,7 @@ class LarrysBot:
 
         self.args = parse_args()
 
+        # TODO: figure out this issue (relevant for tts)
         # if self.args.test:
         #     discord.opus.load_opus('/opt/local/lib/libopus.0.dylib')
 

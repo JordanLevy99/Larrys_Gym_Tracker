@@ -6,6 +6,7 @@ from typing import Union
 import dropbox
 from dotenv import load_dotenv
 
+from src.extensions.larrys_stock_trader import Portfolio
 from src.types import ROOT_PATH, BotConstants
 
 
@@ -100,3 +101,7 @@ class LarrysStockExchange(Database):
         self.cursor.execute("SELECT * FROM User WHERE id = ?", (user_id,))
         user = self.cursor.fetchone()
         return Portfolio(user)
+
+    def get_user_net_worth(self, user_id, stock_api):
+        user = self.get_user_portfolio(user_id)
+        return user.get_total_value(stock_api)

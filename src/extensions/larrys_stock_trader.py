@@ -52,7 +52,7 @@ class StockUserCommands(commands.Cog):
             return "Insufficient balance."
 
     @commands.command()
-    def net_worth(self, stock_api):
+    async def net_worth(self, ctx, stock_api):
         return self.db.get_user_net_worth(self.user_id, stock_api)
 
     @staticmethod
@@ -69,9 +69,12 @@ class StockCommands(commands.Cog):
 
     @commands.command()
     async def price(self, ctx, symbol):
+        current_price = self.get_price(symbol)
+        await ctx.send(f"The current price of {symbol} is {current_price}.")
+
+    def get_price(self, symbol):
         symbol = symbol.upper().strip().strip('$')
-        current_price = stock_api.get_current_price(symbol)
-        ctx.send(f"The current price of {symbol} is {current_price}.")
+        return self.bot.stock_api.get_current_price(symbol)
 
 
 class Portfolio:
@@ -86,7 +89,7 @@ class Portfolio:
             self.stocks[symbol] = {'quantity': quantity, 'average_price': price}
         print(self.stocks)
 
-    def value(self, stock_api):
+    def get_total_value(self, stock_api):
         total_value = 0
         for symbol, details in self.stocks.items():
             current_price = stock_api.get_current_price(symbol)

@@ -155,12 +155,8 @@ class StockBuyTransaction(StockTransaction):
 
     def execute(self) -> str:
         if self.user_balance >= self.total_cost:
-            # try:
             self.user_balance -= self.total_cost
             self.update_database('buy')
-            # except Exception as e:
-            #     print(e)
-            #     return "Error processing transaction."
             return f"Purchased {self.quantity} shares of {self.symbol} at {self.current_price} each"
         else:
             return f"Insufficient balance ({self.user_balance} < {self.total_cost})"

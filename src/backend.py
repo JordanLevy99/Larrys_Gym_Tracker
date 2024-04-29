@@ -164,6 +164,7 @@ class LarrysStockExchange(Database):
         return transaction_id
 
     def update_user_balance(self, user_id, new_balance):
+        print('Updating user balance:', user_id, new_balance)
         self.cursor.execute("UPDATE User SET current_balance = ? WHERE id = ?", (new_balance, user_id))
 
     def get_user_stocks(self, user_id):
@@ -180,10 +181,6 @@ class LarrysStockExchange(Database):
     def get_user_balance(self, user_id):
         self.cursor.execute("SELECT current_balance FROM User WHERE id = ?", (user_id,))
         return self.cursor.fetchone()[0]
-
-    # def get_user_net_worth(self, user_id, stock_api):
-    #     user = self.get_user_portfolio(user_id)
-    #     return user.get_total_value(stock_api)
 
     def update_portfolio(self, transaction_id):
         transaction = self.__get_transaction_data(transaction_id)

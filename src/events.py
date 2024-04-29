@@ -47,8 +47,7 @@ class LarrysEvents(commands.Cog):
     def log_and_upload(self, member, event_time, joining):
         if self.bot.args.verbose:
             log_data(self.bot.database, member, event_time, joining)
-        if not self.bot.args.test:
-            upload(self.bot.backend_client)
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
 
     def __voice_channel_status_changed(self, event):
         return event.channel is not None and event.channel.name == self.bot.bot_constants.VOICE_CHANNEL

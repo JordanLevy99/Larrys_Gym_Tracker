@@ -78,6 +78,34 @@ class TTSTasks(commands.Cog):
         )
         self.exercise_map = {}
 
+    @commands.command()
+    async def ask_larry(self, ctx, *args):
+        query = ' '.join(args)
+        response = self.create_chat(query, system_message='Keep your answers concise and to the point.',
+                                    temperature=0.5)
+
+        remote_speech_file_path = Path('data') / "response.mp3"
+        local_speech_file_path = ROOT_PATH / remote_speech_file_path
+        self.__produce_tts_audio(response, local_speech_file_path)
+        voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
+
+        if voice_channel and len(voice_channel.members) >= 1:
+            try:
+                voice_client = await voice_channel.connect()
+            except discord.errors.ClientException as e:
+                print(str(e))
+                print(
+                    f'Already connected to a voice channel.')
+
+            voice_client = self.bot.discord_client.voice_clients[0]
+            text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
+            await text_channel.send(response)
+            await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client,
+                             duration=self.get_duration(local_speech_file_path),
+                             start_second=0, download=False)
+        else:
+            await ctx.send(response)
+
     @tasks.loop(hours=24)
     async def exercise_of_the_day(self):
         difficulty_points_map = {
@@ -105,10 +133,6 @@ class TTSTasks(commands.Cog):
         tldr_response = 'tldr:\n\t' + tldr_response
         print(tldr_response)
 
-        def get_duration(file_path):
-            audio = MP3(file_path)
-            return audio.info.length
-
         # TODO: make a utility function to connect to the voice channel
         voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
@@ -124,14 +148,13 @@ class TTSTasks(commands.Cog):
             text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
             await text_channel.send(full_response)
             await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client,
-                             duration=get_duration(local_speech_file_path),
+                             duration=self.get_duration(local_speech_file_path),
                              start_second=0, download=False)
             await text_channel.send('\n\n' + tldr_response)
         else:
             text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
             await text_channel.send(full_response)
             await text_channel.send('\n\n' + tldr_response)
-
 
         response_parser = ExerciseOfTheDayResponseParser(tldr_response)
         self.exercise_map = response_parser.parse()
@@ -146,6 +169,11 @@ class TTSTasks(commands.Cog):
                                           self.exercise_map['points'], full_response, tldr_response))
         self.bot.database.connection.commit()
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+
+    @staticmethod
+    def get_duration(file_path):
+        audio = MP3(file_path)
+        return audio.info.length
 
     def __get_previous_exercises(self, difficulty):
         try:

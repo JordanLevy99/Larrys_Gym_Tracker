@@ -6,15 +6,14 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from cli.args import parse_args
-from src.backend import Dropbox, Database, LarrysDatabase, LarrysStockExchange
+from src.backend import Dropbox, LarrysDatabase, LarrysStockExchange
 from src.commands import LarrysCommands, DebugCommands
-from src.extensions.larrys_stock_trader import FinnhubAPI
+from src.extensions.stock_trading.larrys_stock_trader import FinnhubAPI, StockUserCommands, StockCommands
 from src.profiles import ProfileCommands
 from src.tasks import LarrysTasks
 from src.events import LarrysEvents
 from src.tts import TTSTasks
 from src.types import BotConstants, WalkArgs, Songs, ROOT_PATH
-from src.util import download
 
 
 class LarrysBot:
@@ -23,8 +22,8 @@ class LarrysBot:
 
         self.args = parse_args()
 
-        if self.args.test:
-            discord.opus.load_opus('/opt/local/lib/libopus.0.dylib')
+        # if self.args.test:
+        #     discord.opus.load_opus('/opt/local/lib/libopus.0.dylib')
 
         intents = self._get_intents()
         self.discord_client = commands.Bot(command_prefix='!', intents=intents)
@@ -36,6 +35,7 @@ class LarrysBot:
             self.bot_constants.VOICE_CHANNEL_ID = 1191159993861414922
             self.bot_constants.DB_FILE = 'test.db'
             self.bot_constants.DB_PATH = ROOT_PATH / 'data' / self.bot_constants.DB_FILE
+            self.bot_constants.STOCK_DB_FILE = 'test_stock_exchange.db'
         print('these are the bot constants:', self.bot_constants.__dict__)
         load_dotenv()
         self.database = LarrysDatabase(self.bot_constants.DB_FILE)
@@ -64,5 +64,7 @@ class LarrysBot:
         await self.discord_client.add_cog(LarrysTasks(self))
         await self.discord_client.add_cog(ProfileCommands(self))
         await self.discord_client.add_cog(TTSTasks(self))
+        await self.discord_client.add_cog(StockUserCommands(self))
+        await self.discord_client.add_cog(StockCommands(self))
         if self.args.test:
             await self.discord_client.add_cog(DebugCommands(self))

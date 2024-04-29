@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 from src.backend import LarrysStockExchange
 from src.bot import LarrysBot
-from src.extensions.larrys_stock_trader import StockCommands
+from src.extensions.stock_trading.larrys_stock_trader import StockCommands
 
 
 class LarrysStockTraderTests(unittest.TestCase):

@@ -66,6 +66,17 @@ class DebugCommands(commands.Cog):
         channel_id = channel.id
         print(f'The channel id for {BotConstants.VOICE_CHANNEL} is {channel_id}')
 
+    @commands.command()
+    async def delete_users(self, ctx):
+        self.bot.stock_exchange_database.cursor.execute("DELETE FROM User")
+        self.bot.stock_exchange_database.connection.commit()
+        await ctx.send('Users stock accounts have been deleted, use !initialize_users <db_file> to setup again')
+
+    @commands.command()
+    async def delete_transactions(self, ctx):
+        self.bot.stock_exchange_database.cursor.execute("DELETE FROM Transaction")
+        self.bot.stock_exchange_database.connection.commit()
+        await ctx.send('Transactions have been deleted')
 
 class LarrysCommands(commands.Cog):
 

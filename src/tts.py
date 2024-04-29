@@ -146,10 +146,8 @@ class TTSTasks(commands.Cog):
                                           self.exercise_map['points'], full_response, tldr_response))
         self.bot.database.connection.commit()
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
-        # await ctx.send(response.choices[0].text)
 
     def __get_previous_exercises(self, difficulty):
-        # yesterday = datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date() - datetime.timedelta(days=1)
         try:
             previous_exercises = list(self.bot.database.cursor.execute(f"""
                             SELECT exercise FROM exercise_of_the_day 
@@ -224,9 +222,8 @@ class TTSTasks(commands.Cog):
             input=response
         )
         response.write_to_file(speech_file_path)
-        # upload(str(speech_file_path))
 
-    def create_chat(self, user_message, system_message=''):
+    def create_chat(self, user_message, system_message='', temperature=0.65):
         response = self.client.chat.completions.create(
             messages=[
                 {
@@ -239,7 +236,7 @@ class TTSTasks(commands.Cog):
                 },
             ],
             model="gpt-4-0125-preview",
-            temperature=0.65
+            temperature=temperature
         )
 
         return response.choices[0].message.content

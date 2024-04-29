@@ -222,17 +222,27 @@ class TTSTasks(commands.Cog):
                                          f" VALUES (?, ?, ?, ?)", (ctx.author.name, ctx.author.id,
                                                                    daily_exercise, current_time))
         try:
-            self.bot.database.cursor.execute(f"""INSERT INTO points (name, id, points_awarded, day, type)
-                                                VALUES (?, ?, ?, ?, ?)""",
-                                             (ctx.author.name, ctx.author.id,
-                                              int(exercise_points), current_date, 'EXERCISE'))
-            self.bot.database.connection.commit()
+            self.__update_points(ctx, current_date, exercise_points)
+            self.__update_stock_balance(ctx, exercise_points)
             await ctx.send(f'{ctx.author.name} has logged their exercise for today: '
                            f'**{daily_exercise}** at **{current_time}** for **{int(exercise_points)}** points!')
             upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         except ValueError as e:
             print(e)
             ctx.send('There was an error logging your exercise. Contact @dinkster for help.')
+
+    def __update_points(self, ctx, current_date, exercise_points):
+        self.bot.database.cursor.execute(f"""INSERT INTO points (name, id, points_awarded, day, type)
+                                                VALUES (?, ?, ?, ?, ?)""",
+                                         (ctx.author.name, ctx.author.id,
+                                          int(exercise_points), current_date, 'EXERCISE'))
+        self.bot.database.connection.commit()
+
+    def __update_stock_balance(self, ctx, exercise_points):
+        current_balance = self.bot.stock_exchange_database.get_user_balance(ctx.author.id)
+        current_balance += int(exercise_points)
+        self.bot.stock_exchange_database.update_user_balance(ctx.author.id, current_balance)
+        self.bot.stock_exchange_database.connection.commit()
 
     def __exercise_is_already_logged(self, ctx):
         current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))

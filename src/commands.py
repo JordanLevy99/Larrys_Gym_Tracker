@@ -24,17 +24,24 @@ class DebugCommands(commands.Cog):
         self.bot.walk_constants.WINNER_MINUTE = minute
         await ctx.send(f'Walk winner time set to {self.bot.walk_constants.WINNER_HOUR}:'
                        f'{self.bot.walk_constants.WINNER_MINUTE} Pacific time for today...')
+
     @commands.command()
     async def drop_points(self, ctx):
         self.bot.database.cursor.execute("DROP TABLE points")
         self.bot.database.connection.commit()
-        upload(self.bot.backend_client)
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+
+    @commands.command()
+    async def drop_today_points(self, ctx):
+        self.bot.database.cursor.execute("DROP FROM points WHERE day = ?", (datetime.now().date(),))
+        self.bot.database.connection.commit()
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
 
     @commands.command()
     async def delete_all_points(self, ctx):
         self.bot.database.cursor.execute("DELETE FROM points")
         self.bot.database.connection.commit()
-        upload(self.bot.backend_client)
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
 
     @commands.command()
     async def download_database(self, ctx):
@@ -49,10 +56,11 @@ class DebugCommands(commands.Cog):
     async def copy_database(self, ctx, new_db_file: str):
         db_path = self.bot.bot_constants.DB_PATH
         new_db_path = db_path.parent / new_db_file
-        shutil.copyfile(db_path,  new_db_path)
+        shutil.copyfile(db_path, new_db_path)
         self.bot.bot_constants.DB_FILE = new_db_file
         self.bot.bot_constants.DB_PATH = new_db_path
-        await ctx.send(f'Database file set to {self.bot.bot_constants.DB_FILE}. Path is {self.bot.bot_constants.DB_PATH}')
+        await ctx.send(
+            f'Database file set to {self.bot.bot_constants.DB_FILE}. Path is {self.bot.bot_constants.DB_PATH}')
         self.bot.database = Database(self.bot.bot_constants)
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
 
@@ -65,6 +73,18 @@ class DebugCommands(commands.Cog):
         channel = discord.utils.get(ctx.guild.channels, name=BotConstants.VOICE_CHANNEL)
         channel_id = channel.id
         print(f'The channel id for {BotConstants.VOICE_CHANNEL} is {channel_id}')
+
+    @commands.command()
+    async def delete_users(self, ctx):
+        self.bot.stock_exchange_database.cursor.execute("DELETE FROM User")
+        self.bot.stock_exchange_database.connection.commit()
+        await ctx.send('Users stock accounts have been deleted, use !initialize_users <db_file> to setup again')
+
+    @commands.command()
+    async def delete_transactions(self, ctx):
+        self.bot.stock_exchange_database.cursor.execute("DELETE FROM Transaction")
+        self.bot.stock_exchange_database.connection.commit()
+        await ctx.send('Transactions have been deleted')
 
 
 class LarrysCommands(commands.Cog):
@@ -143,7 +163,7 @@ class LarrysCommands(commands.Cog):
         voice_log_df['day'] = voice_log_df['time'].dt.date
         current_day = datetime.now(pytz.timezone('US/Pacific')).date()
         latest_voice_log_day = voice_log_df['day'].max()
-        if current_day != latest_voice_log_day or self.bot.args.test:
+        if current_day != latest_voice_log_day:
             await ctx.send(
                 f'No one has joined the walk today. Bad !end_walk command registered. 500 social credit will '
                 f'be deducted from `{ctx.author.name}`.')
@@ -154,9 +174,10 @@ class LarrysCommands(commands.Cog):
         users_durations = daily_voice_log_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
         calculate_points(self.bot.database, daily_voice_log_df, users_durations,
                          self.bot.walk_constants.LENGTH_OF_WALK_IN_MINUTES, self.bot.walk_constants.MAX_DURATION_POINTS,
-                         self.bot.walk_constants.START_HOUR),
+                         self.bot.walk_constants.START_HOUR, self.bot.stock_exchange_database)
         print(pd.read_sql_query("""SELECT * FROM points""", self.bot.database.connection).tail())
         await self.leaderboard(ctx, '')
         await ctx.send('Getting Today\'s On Time Leaderboard')
         await self.leaderboard(ctx, 'on time today')
-        upload(self.bot.backend_client)
+        upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+        upload(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)

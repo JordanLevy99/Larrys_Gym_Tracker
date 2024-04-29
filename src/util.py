@@ -34,7 +34,7 @@ def _process_query(query, type_filter=''):
         return 'all', '', type_filter
 
 
-def calculate_points(database, users_df, users_durations, length_of_walk_in_minutes, max_duration_points, start_hour):
+def calculate_points(database, users_df, users_durations, length_of_walk_in_minutes, max_duration_points, start_hour, stock_db=None):
     # TODO: move this function to a class that contains our walk constants
     print(users_durations)
     walk_time_in_seconds = timedelta(minutes=length_of_walk_in_minutes).total_seconds()
@@ -43,14 +43,26 @@ def calculate_points(database, users_df, users_durations, length_of_walk_in_minu
     late_time = (users_df.groupby('id').apply(
         lambda user: user['time'].min() - user['time'].min().replace(hour=start_hour, minute=0, second=0,
                                                                      microsecond=0)))
-    on_time_points = WalkArgs.MAX_DURATION_POINTS - (late_time.dt.total_seconds()
+    on_time_points = WalkArgs.MAX_ON_TIME_POINTS - (late_time.dt.total_seconds()
                                                      / (walk_time_in_seconds / 2)) * 50
     on_time_points.loc[on_time_points < 0] = 0
     # print('User Durations:',users_durations)
     day = users_df['day'].max()
     users_df = users_df[['name', 'id', 'day']].drop_duplicates()
-    process_points_df(database, users_df, on_time_points, 'ON TIME', day)
-    process_points_df(database, users_df, duration_points, 'DURATION', day)
+    on_time_points = process_points_df(database, users_df, on_time_points, 'ON TIME', day)
+    duration_points = process_points_df(database, users_df, duration_points, 'DURATION', day)
+    for idx, user in on_time_points.iterrows():
+        _update_stock_balance(stock_db, user)
+    for idx, user in duration_points.iterrows():
+        _update_stock_balance(stock_db, user)
+    stock_db.connection.commit()
+
+
+def _update_stock_balance(stock_db, user):
+    current_balance = stock_db.get_user_balance(user['id'])
+    print(f'Current balance for {user["name"]}: {current_balance}')
+    current_balance += user['points_awarded']
+    stock_db.update_user_balance(user['id'], current_balance)
 
 
 def process_points_df(database, users_df, points_df, points_type, day):

@@ -5,7 +5,7 @@ from datetime import timedelta
 # # Connect to the database
 # conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
 if __name__ == '__main__':
-    conn = sqlite3.connect('../larrys_database.db')
+    conn = sqlite3.connect('../test.db')
     cursor = conn.cursor()
 
     # # Update the format of dates to include microsecond
@@ -69,9 +69,11 @@ if __name__ == '__main__':
     # cursor.execute("""CREATE TABLE IF NOT EXISTS exercise_of_the_day
     #                 (exercise text, date datetime, sets integer, reps integer, duration text, difficulty text, points integer, full_response text,
     #                 tldr_response text)""")
+    today = datetime.now().date()
+    cursor.execute(f"""DELETE FROM voice_log WHERE time >= '{today}'""")
 
-    latest_exercise_log_row = pd.read_sql_query("SELECT * FROM exercise_log", conn).iloc[-1]
-    cursor.execute("""INSERT INTO exercise_log (name, id, exercise, time) VALUES (?, ?, ?, ?)""", ('jam4bears', 390403088722165762, 'Boxing punches', str(pd.to_datetime(latest_exercise_log_row['time'])+ timedelta(minutes=10))))
+    # latest_exercise_log_row = pd.read_sql_query("SELECT * FROM exercise_log", conn).iloc[-1]
+    # cursor.execute("""INSERT INTO exercise_log (name, id, exercise, time) VALUES (?, ?, ?, ?)""", ('jam4bears', 390403088722165762, 'Boxing punches', str(pd.to_datetime(latest_exercise_log_row['time'])+ timedelta(minutes=10))))
 
     # cursor.execute("DELETE FROM exercise_of_the_day")
     # cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_of_the_day

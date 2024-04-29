@@ -55,10 +55,11 @@ class TTSTasks(commands.Cog):
 
     FORMATTED_RESPONSE_SYSTEM_MESSAGE = ('Given a difficulty ranging from easy to extreme '
                                          '(with medium and hard inbetween), points awarded, '
-                                         'and the previous day\'s exercise you will create a unique exercise '
+                                         'and recent previous exercises from that difficulty,'
+                                         ' you will create a unique exercise '
                                          'that can be completed in one\'s home/apartment in 5-20 minutes '
-                                         '(depending on the difficulty), is different from the previous day\'s '
-                                         'exercise, and formatted in the following way with no extra text:'
+                                         '(depending on the difficulty), is different from the previous '
+                                         'exercises, and formatted in the following way with no extra text:'
                                          '"Exercise: **{name_of_exercise}**\n'
                                          '\tSets: **{number_of_sets}**\n'
                                          '\tReps: **{number_of_reps}**\n'
@@ -66,6 +67,9 @@ class TTSTasks(commands.Cog):
                                          '\tDifficulty: **{difficulty}**\n'
                                          '\tPoints: **{points_awarded}**" '
                                          'If any of this information is not needed for this exercise, output N/A for that field.')
+
+    NUM_EXERCISES = 5
+    DIFFICULTY_PROBABILITIES = [0.3, 0.5, 0.18, 0.02]
 
     def __init__(self, bot):
         self.bot = bot
@@ -110,10 +114,11 @@ class TTSTasks(commands.Cog):
             'Hard': 50,
             'Extreme': 100
         }
-        previous_exercise = self.__get_previous_exercise()
-        difficulty = np.random.choice(list(difficulty_points_map.keys()), p=[0.3, 0.5, 0.18, 0.02])
+        difficulty = np.random.choice(list(difficulty_points_map.keys()),
+                                      p=self.DIFFICULTY_PROBABILITIES)
+        previous_exercises = self.__get_previous_exercises(difficulty)
         points = difficulty_points_map[difficulty]
-        user_message = f"Previous day's exercise: {previous_exercise}\nDifficulty: {difficulty}\nPoints Awarded: {points}"
+        user_message = f"Previous exercises in this difficulty: {previous_exercises}\nDifficulty: {difficulty}\nPoints Awarded: {points}"
         print(user_message)
         tldr_response = self.create_chat(user_message,
                                          system_message=self.FORMATTED_RESPONSE_SYSTEM_MESSAGE)
@@ -146,6 +151,10 @@ class TTSTasks(commands.Cog):
                              duration=self.get_duration(local_speech_file_path),
                              start_second=0, download=False)
             await text_channel.send('\n\n' + tldr_response)
+        else:
+            text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
+            await text_channel.send(full_response)
+            await text_channel.send('\n\n' + tldr_response)
 
         response_parser = ExerciseOfTheDayResponseParser(tldr_response)
         self.exercise_map = response_parser.parse()
@@ -160,23 +169,25 @@ class TTSTasks(commands.Cog):
                                           self.exercise_map['points'], full_response, tldr_response))
         self.bot.database.connection.commit()
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
-        # await ctx.send(response.choices[0].text)
 
     @staticmethod
     def get_duration(file_path):
         audio = MP3(file_path)
         return audio.info.length
 
-    def __get_previous_exercise(self):
-        yesterday = datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date() - datetime.timedelta(days=1)
+    def __get_previous_exercises(self, difficulty):
         try:
-            previous_exercise = self.bot.database.cursor.execute(f"""SELECT exercise FROM exercise_of_the_day 
-                                                                 WHERE date = {yesterday}""").fetchone()[0]
+            previous_exercises = list(self.bot.database.cursor.execute(f"""
+                            SELECT exercise FROM exercise_of_the_day 
+                            WHERE difficulty = '{difficulty}'
+                            ORDER BY date DESC 
+                            LIMIT {self.NUM_EXERCISES}""").fetchall())
+            previous_exercises = [exercise[0] for exercise in previous_exercises]
         except TypeError:
-            previous_exercise = None
-        if previous_exercise is None:
-            previous_exercise = 'N/A'
-        return previous_exercise
+            previous_exercises = None
+        if previous_exercises is None:
+            previous_exercises = ['N/A']
+        return ', '.join(previous_exercises)
 
     @exercise_of_the_day.before_loop
     async def before_exercise_of_the_day(self):
@@ -239,7 +250,6 @@ class TTSTasks(commands.Cog):
             input=response
         )
         response.write_to_file(speech_file_path)
-        # upload(str(speech_file_path))
 
     def create_chat(self, user_message, system_message='', temperature=0.65):
         response = self.client.chat.completions.create(

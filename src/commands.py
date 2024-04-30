@@ -46,6 +46,7 @@ class DebugCommands(commands.Cog):
     @commands.command()
     async def download_database(self, ctx):
         download(self.bot.bot_constants.DB_FILE)
+        download(self.bot.bot_constants.STOCK_DB_FILE)
 
     @commands.command()
     async def upload_database(self, ctx):

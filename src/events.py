@@ -16,6 +16,7 @@ class LarrysEvents(commands.Cog):
         self.bot.discord_client.cogs['LarrysTasks'].determine_monthly_winner.start()
         self.bot.discord_client.cogs['TTSTasks'].exercise_of_the_day.start()
         download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+        download(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         print(pd.read_sql_query("SELECT * FROM voice_log", self.bot.database.connection).tail())
 
     @commands.Cog.listener()
@@ -64,7 +65,8 @@ class LarrysEvents(commands.Cog):
         if current_day != walk_day and walk_hour_condition:
             self.bot.walk_constants.WALK_ENDED = False
             print('New walk starting')
-            download(self.bot.backend_client)
+            download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+            download(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         else:
             print('Walk already ended')
             await member.send('The walk has already ended for today. Please join tomorrow.')

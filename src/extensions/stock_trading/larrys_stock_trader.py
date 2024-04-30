@@ -67,6 +67,7 @@ class StockUserCommands(commands.Cog):
         walkers = discord.utils.get(ctx.guild.roles, name='Walker').members
         balance_table = self.db.initialize_users(db_file, walkers)
         self.db.connection.commit()
+        upload(self.bot.backend_client, db_file)
         await ctx.send(f"Users will start with the following balances: \n{balance_table}")
 
     @commands.command()
@@ -107,6 +108,7 @@ class StockUserCommands(commands.Cog):
         user_stocks = self.db.get_user_stocks(user_id)
         print('original stock prices:', user_stocks)
         portfolio = Portfolio(user_stocks, self.bot.stock_api, self.db)
+        upload(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         return portfolio
 
     @staticmethod

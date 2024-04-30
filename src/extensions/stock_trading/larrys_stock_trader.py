@@ -159,9 +159,9 @@ class StockBuyTransaction(StockTransaction):
         if self.user_balance >= self.total_cost:
             self.user_balance -= self.total_cost
             self.update_database('buy')
-            return f"Purchased {self.quantity} shares of {self.symbol} at {self.current_price} each"
+            return f"Purchased **{self.quantity}** shares of **{self.symbol}** at **{self.current_price}** each"
         else:
-            return f"Insufficient balance ({self.user_balance} < {self.total_cost})"
+            return f"Insufficient balance (**{self.user_balance}** < **{self.total_cost}**)"
 
 
 class StockSellTransaction(StockTransaction):
@@ -174,7 +174,7 @@ class StockSellTransaction(StockTransaction):
         if quantity >= self.quantity:
             self.user_balance += self.total_cost
             self.update_database('sell')
-            return f"Sold {self.quantity} shares of {self.symbol} at {self.current_price} each."
+            return f"Sold **{self.quantity}** shares of **{self.symbol}** at **{self.current_price}** each."
         else:
             return "Insufficient shares to sell."
 
@@ -208,7 +208,7 @@ class StockCommands(commands.Cog):
     @commands.command()
     async def price(self, ctx, symbol):
         current_price = self.get_price(symbol)
-        await ctx.send(f"The current price of {symbol.upper()} is {current_price}")
+        await ctx.send(f"The current price of **{symbol.upper()}** is **{current_price}**")
 
     def get_price(self, symbol):
         symbol = symbol.upper().strip().strip('$')
@@ -229,14 +229,3 @@ class PortfolioPrinter:
                               f"Cost Basis: **{cost_basis}**\n\tCurrent Price: **{price}**\n\t"
                               f"Total Value: **{total_value}**\n\n")
         return return_string
-
-if __name__ == "__main__":
-    load_dotenv()
-    api_key = os.getenv('ALPHA_VANTAGE_API_KEY')
-    stock_api = StockAPI(api_key)
-    stock_api.get_top_volume()
-    # user = User(1, "Alice")
-    # portfolio = Portfolio(user)
-    # user.buy_stock("FXAIX", 10, stock_api)
-    # total_value = user.get_portfolio_value()
-    # print(total_value)

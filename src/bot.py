@@ -67,5 +67,4 @@ class LarrysBot:
         await self.discord_client.add_cog(TTSTasks(self))
         await self.discord_client.add_cog(StockUserCommands(self))
         await self.discord_client.add_cog(StockCommands(self))
-        if self.args.test:
-            await self.discord_client.add_cog(DebugCommands(self))
+        await self.discord_client.add_cog(DebugCommands(self))

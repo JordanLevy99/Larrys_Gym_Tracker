@@ -67,7 +67,7 @@ class StockUserCommands(commands.Cog):
         walkers = discord.utils.get(ctx.guild.roles, name='Walker').members
         balance_table = self.db.initialize_users(db_file, walkers)
         self.db.connection.commit()
-        upload(self.bot.backend_client, db_file)
+        upload(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         await ctx.send(f"Users will start with the following balances: \n{balance_table}")
 
     @commands.command()

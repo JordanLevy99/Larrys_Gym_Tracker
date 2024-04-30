@@ -51,7 +51,9 @@ class DebugCommands(commands.Cog):
     @commands.command()
     async def upload_database(self, ctx):
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+        upload(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         print(f'Uploaded {self.bot.bot_constants.DB_FILE} to Dropbox!')
+        print(f'Uploaded {self.bot.bot_constants.STOCK_DB_FILE} to Dropbox!')
 
     @commands.command()
     async def copy_database(self, ctx, new_db_file: str):

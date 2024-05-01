@@ -4,6 +4,7 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from openai import OpenAI
 
 from cli.args import parse_args
 from src.backend import Dropbox, LarrysDatabase, LarrysStockExchange
@@ -46,6 +47,9 @@ class LarrysBot:
         self.songs = Songs()
         self.bot_constants.TOKEN = os.getenv('BOT_TOKEN')
         self.backend_client = Dropbox()
+        self.openai_client = OpenAI(
+            api_key=os.environ.get("OPENAI_API_KEY"),
+        )
 
     def run(self):
         loop = asyncio.get_event_loop()

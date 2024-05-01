@@ -73,20 +73,17 @@ class TTSTasks(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.client = OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"),
-        )
         self.exercise_map = {}
 
     @commands.command()
     async def ask_larry(self, ctx, *args):
         query = ' '.join(args)
-        response = self.create_chat(query, system_message='Keep your answers concise and to the point.',
+        response = self.create_chat(self.bot.openai_client, query, system_message='Keep your answers concise and to the point.',
                                     temperature=0.5)
 
         remote_speech_file_path = Path('data') / "response.mp3"
         local_speech_file_path = ROOT_PATH / remote_speech_file_path
-        self.__produce_tts_audio(response, local_speech_file_path)
+        self.produce_tts_audio(self.bot.openai_client, response, local_speech_file_path)
         voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
         if voice_channel and len(voice_channel.members) >= 1:
@@ -120,15 +117,15 @@ class TTSTasks(commands.Cog):
         points = difficulty_points_map[difficulty]
         user_message = f"Previous exercises in this difficulty: {previous_exercises}\nDifficulty: {difficulty}\nPoints Awarded: {points}"
         print(user_message)
-        tldr_response = self.create_chat(user_message,
+        tldr_response = self.create_chat(self.bot.openai_client, user_message,
                                          system_message=self.FORMATTED_RESPONSE_SYSTEM_MESSAGE)
-        full_response = self.create_chat(tldr_response,
+        full_response = self.create_chat(self.bot.openai_client, tldr_response,
                                          system_message=self.FULL_RESPONSE_SYSTEM_MESSAGE)
 
         print(full_response)
         remote_speech_file_path = Path('data') / "exercise_of_the_day.mp3"
         local_speech_file_path = ROOT_PATH / remote_speech_file_path
-        self.__produce_tts_audio(full_response, local_speech_file_path)
+        self.produce_tts_audio(self.bot.openai_client, full_response, local_speech_file_path)
 
         tldr_response = 'tldr:\n\t' + tldr_response
         print(tldr_response)
@@ -253,16 +250,18 @@ class TTSTasks(commands.Cog):
                                                 f"WHERE date = "
                                                 f"'{current_date}' AND id = {ctx.author.id}").fetchone()
 
-    def __produce_tts_audio(self, response, speech_file_path):
-        response = self.client.audio.speech.create(
+    @staticmethod
+    def produce_tts_audio(client, response, speech_file_path):
+        response = client.audio.speech.create(
             model="tts-1",
             voice="alloy",
             input=response
         )
         response.write_to_file(speech_file_path)
 
-    def create_chat(self, user_message, system_message='', temperature=0.65):
-        response = self.client.chat.completions.create(
+    @staticmethod
+    def create_chat(client, user_message, system_message='', temperature=0.65):
+        response = client.chat.completions.create(
             messages=[
                 {
                     "role": "system",

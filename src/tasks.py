@@ -3,12 +3,15 @@ import random
 import time
 from datetime import timedelta
 import datetime
+from pathlib import Path
 
 import discord
 import pandas as pd
 import pytz
 from discord.ext import commands, tasks
 
+from src.tts import TTSTasks
+from src.types import ROOT_PATH
 from src.util import _get_current_time, play_audio, determine_winner
 
 
@@ -47,10 +50,16 @@ class LarrysTasks(commands.Cog):
                     return
                 # winner_args = winner_songs[winner['name']]
                 text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
-
+                previous_month  = pacific_time.month - 1
+                previous_month_name = datetime.date(1900, previous_month, 1).strftime('%B')
+                winner_message = f"Congrats to {winner['name']} for winning the month of {previous_month_name} with {round(winner['total_points'])} points!"
                 await text_channel.send(
-                    f"Congrats to kyboydigital for winning the month of January with {round(winner['total_points'])} points!\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
-                await play_audio(voice_client, f'data/songs/march_winner_2024.wav', self.bot.backend_client, 6, 0, False)
+                    f"{winner_message}\nhttps://www.youtube.com/watch?v=veb4_RB01iQ&ab_channel=KB8")
+
+                remote_speech_file_path = Path('data') / f"{previous_month_name}_winner_{pacific_time.year}.wav'"
+                local_speech_file_path = ROOT_PATH / remote_speech_file_path
+                TTSTasks.produce_tts_audio(self.bot.openai_client, winner_message, local_speech_file_path)
+                await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client, TTSTasks.get_duration(local_speech_file_path), 0, False)
                 await play_audio(voice_client, f'data/songs/first_of_the_month.mp3', self.bot.backend_client, 21, 41, True)
 
     @tasks.loop(hours=24)
@@ -113,8 +122,8 @@ class LarrysTasks(commands.Cog):
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
         target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=self.bot.walk_constants.WINNER_MINUTE - 1, second=0,
-                                       microsecond=0)
+                                                minute=self.bot.walk_constants.WINNER_MINUTE - 2, second=50,
+                                                microsecond=0)
         if now > target_time:
             target_time += timedelta(days=1)
         print('Monthly winner determined at', target_time)

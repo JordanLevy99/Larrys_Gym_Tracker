@@ -73,7 +73,10 @@ class StockUserCommands(commands.Cog):
     @commands.command()
     async def buy(self, ctx, *args):
         symbol, quantity = self._parse_transaction_args(args)
-        message = self.stock_transaction_factory.create(ctx.author.id, symbol, quantity, 'buy').execute()
+        try:
+            message = self.stock_transaction_factory.create(ctx.author.id, symbol, quantity, 'buy').execute()
+        except SymbolNotFound as e:
+            message = str(e)
         await ctx.send(message)
 
     @commands.command()
@@ -86,7 +89,7 @@ class StockUserCommands(commands.Cog):
     async def portfolio(self, ctx):
         user_id = ctx.author.id
         portfolio = self.__get_portfolio(user_id)
-        print('updated stock prices:',portfolio.stocks)
+        print('updated stock prices:', portfolio.stocks)
         portfolio_printer = PortfolioPrinter(portfolio)
         await ctx.send(portfolio_printer.print())
 
@@ -120,6 +123,13 @@ class StockUserCommands(commands.Cog):
         return symbol, quantity
 
 
+class SymbolNotFound(Exception):
+
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
 class StockTransaction:
 
     def __init__(self, user_id, symbol, quantity, bot):
@@ -135,6 +145,8 @@ class StockTransaction:
         self.user_balance = self.db.get_user_balance(self.user_id)
         self.current_price = self.stock_api.get_current_price(self.symbol)
         self.total_cost = self.current_price * self.quantity
+        if self.total_cost == 0:
+            raise SymbolNotFound(f"Symbol **{self.symbol}** not found.")
 
     def execute(self):
         pass
@@ -185,7 +197,6 @@ class StockSellTransaction(StockTransaction):
                 quantity = stock[2]
                 break
         return quantity
-
 
 
 class StockTransactionFactory:

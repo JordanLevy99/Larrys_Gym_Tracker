@@ -105,6 +105,10 @@ class LarrysCommands(commands.Cog):
 
     @commands.command()
     async def end_walk(self, ctx):
+        pacific_time = datetime.now(pytz.timezone('US/Pacific'))
+        if pacific_time.hour > self.bot.walk_constants.END_HOUR:
+            await ctx.send('Walk has already ended for today! *sus*')
+            return
         if not self.bot.walk_constants.WALK_ENDED:
             current_time, _ = _get_current_time()
             await self.update_points(ctx, current_time)

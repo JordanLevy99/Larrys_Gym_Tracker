@@ -103,9 +103,13 @@ class StockUserCommands(commands.Cog):
     @commands.command()
     async def net_worth(self, ctx):
         user_id = ctx.author.id
+        net_worth = self.get_net_worth(user_id)
+        await ctx.send(f"Your current net worth is **{round(net_worth, 2)}**")
+
+    def get_net_worth(self, user_id):
         portfolio = self.__get_portfolio(user_id)
         net_worth = portfolio.get_total_value() + self.db.get_user_balance(user_id)
-        await ctx.send(f"Your current net worth is **{round(net_worth, 2)}**")
+        return net_worth
 
     def __get_portfolio(self, user_id) -> Portfolio:
         user_stocks = self.db.get_user_stocks(user_id)
@@ -171,7 +175,7 @@ class StockBuyTransaction(StockTransaction):
         if self.user_balance >= self.total_cost:
             self.user_balance -= self.total_cost
             self.update_database('buy')
-            return f"Purchased **{self.quantity}** shares of **{self.symbol}** at **{self.current_price}** each"
+            return f"Purchased **{self.quantity}** shares of **{self.symbol}** at **{self.current_price}** each for a total of **{self.total_cost}**"
         else:
             return f"Insufficient balance (**{self.user_balance}** < **{self.total_cost}**)"
 
@@ -186,7 +190,7 @@ class StockSellTransaction(StockTransaction):
         if quantity >= self.quantity:
             self.user_balance += self.total_cost
             self.update_database('sell')
-            return f"Sold **{self.quantity}** shares of **{self.symbol}** at **{self.current_price}** each."
+            return f"Sold **{self.quantity}** shares of **{self.symbol}** at **{self.current_price}** each for a total of **{self.total_cost}**"
         else:
             return "Insufficient shares to sell."
 
@@ -233,10 +237,14 @@ class PortfolioPrinter:
 
     def print(self):
         return_string = ""
+        prefix = "Total Portfolio Value: **"
+        portfolio_value = 0
         for stock in self.portfolio.stocks:
             _, symbol, quantity, cost_basis, price = stock
             total_value = quantity * price
+            portfolio_value += total_value
             return_string += (f"**{symbol}**: \n\tQuantity: **{quantity}**\n\t"
                               f"Cost Basis: **{cost_basis}**\n\tCurrent Price: **{price}**\n\t"
                               f"Total Value: **{total_value}**\n\n")
+        prefix += f"{portfolio_value}**"
         return return_string

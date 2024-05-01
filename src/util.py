@@ -51,11 +51,14 @@ def calculate_points(database, users_df, users_durations, length_of_walk_in_minu
     users_df = users_df[['name', 'id', 'day']].drop_duplicates()
     on_time_points = process_points_df(database, users_df, on_time_points, 'ON TIME', day)
     duration_points = process_points_df(database, users_df, duration_points, 'DURATION', day)
-    for idx, user in on_time_points.iterrows():
-        _update_stock_balance(stock_db, user)
-    for idx, user in duration_points.iterrows():
-        _update_stock_balance(stock_db, user)
-    stock_db.connection.commit()
+    try:
+        for idx, user in on_time_points.iterrows():
+            _update_stock_balance(stock_db, user)
+        for idx, user in duration_points.iterrows():
+            _update_stock_balance(stock_db, user)
+        stock_db.connection.commit()
+    except Exception as e:
+        print('Error updating stock balance:', e)
 
 
 def _update_stock_balance(stock_db, user):

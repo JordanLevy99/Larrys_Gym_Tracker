@@ -1,11 +1,13 @@
 from datetime import datetime
 import sqlite3
+
+import numpy as np
 import pandas as pd
 from datetime import timedelta
 # # Connect to the database
 # conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
 if __name__ == '__main__':
-    conn = sqlite3.connect('../test.db')
+    conn = sqlite3.connect('../larrys_stock_exchange.db')
     cursor = conn.cursor()
 
     # # Update the format of dates to include microsecond
@@ -69,8 +71,33 @@ if __name__ == '__main__':
     # cursor.execute("""CREATE TABLE IF NOT EXISTS exercise_of_the_day
     #                 (exercise text, date datetime, sets integer, reps integer, duration text, difficulty text, points integer, full_response text,
     #                 tldr_response text)""")
+    # today = datetime.now().date()
+    # cursor.execute(f"""DELETE FROM voice_log WHERE time >= '{today}'""")
+
+    balances_df = pd.read_sql_query("SELECT * FROM User", conn)
+    conn2 = sqlite3.connect('../larrys_database.db')
     today = datetime.now().date()
-    cursor.execute(f"""DELETE FROM voice_log WHERE time >= '{today}'""")
+    points_df = pd.read_sql_query(f"SELECT * FROM points", conn2)
+    # points_df['day'] = points_df['day'].astype('datetime64[ns]')
+    balances_df['id'] = balances_df['id'].astype('int64')
+    points_df['id'] = points_df['id'].astype('int64')
+    points_day_df = points_df.loc[(points_df['day'] == str(today)) & (points_df['type'] != 'EXERCISE')].groupby('id').agg({'points_awarded': 'sum'})
+    adjusted_balances = balances_df.merge(points_day_df, left_on='id', right_on='id', how='left').replace(np.nan, 0)
+    print(balances_df)
+
+    balances_df['current_balance'] = adjusted_balances['current_balance'] - adjusted_balances['points_awarded']
+    print(balances_df)
+
+    balances_df.to_sql('User', conn, if_exists='replace', index=False)
+
+    # points_df = pd.read_sql_query("SELECT * FROM points", conn)
+    # print(points_df.tail(30))
+    # print(len(points_df))
+    # points_df = points_df.drop_duplicates()
+    # print(points_df.tail(30))
+    #
+    # points_df.to_sql('points', conn, if_exists='replace', index=False)
+    # print(len(points_df))
 
     # latest_exercise_log_row = pd.read_sql_query("SELECT * FROM exercise_log", conn).iloc[-1]
     # cursor.execute("""INSERT INTO exercise_log (name, id, exercise, time) VALUES (?, ?, ?, ?)""", ('jam4bears', 390403088722165762, 'Boxing punches', str(pd.to_datetime(latest_exercise_log_row['time'])+ timedelta(minutes=10))))

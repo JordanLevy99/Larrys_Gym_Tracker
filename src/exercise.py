@@ -1,17 +1,15 @@
 import asyncio
 import datetime
-import os
 from pathlib import Path
 
 import discord
 import numpy as np
 import pytz
 from discord.ext import commands, tasks
-from openai import OpenAI
 
+from src.openai import OpenAICog
 from src.types import ROOT_PATH
-from src.util import play_audio, upload
-from mutagen.mp3 import MP3
+from src.util import play_audio, get_mp3_duration, upload
 
 
 class ExerciseOfTheDayResponseParser:
@@ -46,7 +44,8 @@ class ExerciseOfTheDayResponseParser:
         return self.exercise_map
 
 
-class TTSTasks(commands.Cog):
+class ExerciseCog(commands.Cog):
+
     FULL_RESPONSE_SYSTEM_MESSAGE = (
         "You are an assistant that is designed to motivate people who are on their morning walk"
         " to do the exercise of the day. Announce the exercise, reps and/or duration, and the "
@@ -71,87 +70,35 @@ class TTSTasks(commands.Cog):
     NUM_EXERCISES = 5
     DIFFICULTY_PROBABILITIES = [0.3, 0.5, 0.18, 0.02]
 
+    difficulty_points_map = {
+        'Easy': 10,
+        'Medium': 25,
+        'Hard': 50,
+        'Extreme': 100
+    }
+
     def __init__(self, bot):
         self.bot = bot
         self.exercise_map = {}
-
-    @commands.command()
-    async def ask_larry(self, ctx, *args):
-        query = ' '.join(args)
-        response = self.create_chat(self.bot.openai_client, query, system_message='Keep your answers concise and to the point.',
-                                    temperature=0.5)
-
-        remote_speech_file_path = Path('data') / "response.mp3"
-        local_speech_file_path = ROOT_PATH / remote_speech_file_path
-        self.produce_tts_audio(self.bot.openai_client, response, local_speech_file_path)
-        voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
-
-        if voice_channel and len(voice_channel.members) >= 1:
-            try:
-                voice_client = await voice_channel.connect()
-            except discord.errors.ClientException as e:
-                print(str(e))
-                print(
-                    f'Already connected to a voice channel.')
-
-            voice_client = self.bot.discord_client.voice_clients[0]
-            text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
-            await text_channel.send(response)
-            await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client,
-                             duration=self.get_duration(local_speech_file_path),
-                             start_second=0, download=False)
-        else:
-            await ctx.send(response)
+        self.remote_speech_file_path = Path('data') / "exercise_of_the_day.mp3"
+        self.local_speech_file_path = ROOT_PATH / self.remote_speech_file_path
 
     @tasks.loop(hours=24)
     async def exercise_of_the_day(self):
-        difficulty_points_map = {
-            'Easy': 10,
-            'Medium': 25,
-            'Hard': 50,
-            'Extreme': 100
-        }
-        difficulty = np.random.choice(list(difficulty_points_map.keys()),
-                                      p=self.DIFFICULTY_PROBABILITIES)
-        previous_exercises = self.__get_previous_exercises(difficulty)
-        points = difficulty_points_map[difficulty]
-        user_message = f"Previous exercises in this difficulty: {previous_exercises}\nDifficulty: {difficulty}\nPoints Awarded: {points}"
-        print(user_message)
-        tldr_response = self.create_chat(self.bot.openai_client, user_message,
-                                         system_message=self.FORMATTED_RESPONSE_SYSTEM_MESSAGE)
-        full_response = self.create_chat(self.bot.openai_client, tldr_response,
-                                         system_message=self.FULL_RESPONSE_SYSTEM_MESSAGE)
-
-        print(full_response)
-        remote_speech_file_path = Path('data') / "exercise_of_the_day.mp3"
-        local_speech_file_path = ROOT_PATH / remote_speech_file_path
-        self.produce_tts_audio(self.bot.openai_client, full_response, local_speech_file_path)
-
-        tldr_response = 'tldr:\n\t' + tldr_response
-        print(tldr_response)
+        full_response, tldr_response = self.exercise(ctx=None)
 
         # TODO: make a utility function to connect to the voice channel
         voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
         if voice_channel and len(voice_channel.members) >= 1:
-            try:
-                voice_client = await voice_channel.connect()
-            except discord.errors.ClientException as e:
-                print(str(e))
-                print(
-                    f'Already connected to a voice channel.')
-
-            voice_client = self.bot.discord_client.voice_clients[0]
-            text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
+            text_channel, voice_client = await self.__get_voice_client_and_text_channel(voice_channel)
             await text_channel.send(full_response)
-            await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client,
-                             duration=self.get_duration(local_speech_file_path),
+            await play_audio(voice_client, str(self.remote_speech_file_path), self.bot.backend_client,
+                             duration=get_mp3_duration(self.local_speech_file_path),
                              start_second=0, download=False)
             await text_channel.send('\n\n' + tldr_response)
         else:
-            text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
-            await text_channel.send(full_response)
-            await text_channel.send('\n\n' + tldr_response)
+            await self.__send_responses_to_text_channel(full_response, tldr_response)
 
         response_parser = ExerciseOfTheDayResponseParser(tldr_response)
         self.exercise_map = response_parser.parse()
@@ -167,18 +114,52 @@ class TTSTasks(commands.Cog):
         self.bot.database.connection.commit()
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
 
-    @staticmethod
-    def get_duration(file_path):
-        audio = MP3(file_path)
-        return audio.info.length
+    async def __get_voice_client_and_text_channel(self, voice_channel):
+        try:
+            voice_client = await voice_channel.connect()
+        except discord.errors.ClientException as e:
+            print(str(e))
+            print(
+                f'Already connected to a voice channel.')
+        voice_client = self.bot.discord_client.voice_clients[0]
+        text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
+        return text_channel, voice_client
+
+    async def __send_responses_to_text_channel(self, full_response, tldr_response):
+        text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
+        await text_channel.send(full_response)
+        await text_channel.send('\n\n' + tldr_response)
+
+    @commands.command()
+    async def exercise(self, ctx, *args):
+        args = ' '.join(args)
+
+        difficulty = np.random.choice(list(self.difficulty_points_map.keys()),
+                                      p=self.DIFFICULTY_PROBABILITIES)
+        previous_exercises = self.__get_previous_exercises(difficulty)
+        points = self.difficulty_points_map[difficulty]
+        user_message = f"Previous exercises in this difficulty: {previous_exercises}\nDifficulty: {difficulty}\nPoints Awarded: {points}"
+        print(user_message)
+        tldr_response = OpenAICog.create_chat(self.bot.openai_client, user_message,
+                                              system_message=self.FORMATTED_RESPONSE_SYSTEM_MESSAGE)
+        full_response = OpenAICog.create_chat(self.bot.openai_client, tldr_response,
+                                              system_message=self.FULL_RESPONSE_SYSTEM_MESSAGE)
+
+        print(full_response)
+        if 'text' not in args.strip().lower():
+            OpenAICog.produce_tts_audio(self.bot.openai_client, full_response, self.local_speech_file_path)
+
+        tldr_response = 'tldr:\n\t' + tldr_response
+        print(tldr_response)
+        return full_response, tldr_response
 
     def __get_previous_exercises(self, difficulty):
         try:
             previous_exercises = list(self.bot.database.cursor.execute(f"""
-                            SELECT exercise FROM exercise_of_the_day 
-                            WHERE difficulty = '{difficulty}'
-                            ORDER BY date DESC 
-                            LIMIT {self.NUM_EXERCISES}""").fetchall())
+                                SELECT exercise FROM exercise_of_the_day 
+                                WHERE difficulty = '{difficulty}'
+                                ORDER BY date DESC 
+                                LIMIT {self.NUM_EXERCISES}""").fetchall())
             previous_exercises = [exercise[0] for exercise in previous_exercises]
         except TypeError:
             previous_exercises = None
@@ -230,16 +211,20 @@ class TTSTasks(commands.Cog):
 
     def __update_points(self, ctx, current_date, exercise_points):
         self.bot.database.cursor.execute(f"""INSERT INTO points (name, id, points_awarded, day, type)
-                                                VALUES (?, ?, ?, ?, ?)""",
+                                                    VALUES (?, ?, ?, ?, ?)""",
                                          (ctx.author.name, ctx.author.id,
                                           int(exercise_points), current_date, 'EXERCISE'))
         self.bot.database.connection.commit()
 
     def __update_stock_balance(self, ctx, exercise_points):
-        current_balance = self.bot.stock_exchange_database.get_user_balance(ctx.author.id)
-        current_balance += int(exercise_points)
-        self.bot.stock_exchange_database.update_user_balance(ctx.author.id, current_balance)
-        self.bot.stock_exchange_database.connection.commit()
+        try:
+            current_balance = self.bot.stock_exchange_database.get_user_balance(ctx.author.id)
+            current_balance += int(exercise_points)
+            self.bot.stock_exchange_database.update_user_balance(ctx.author.id, current_balance)
+            self.bot.stock_exchange_database.connection.commit()
+        except Exception as e:
+            print(e)
+        return
 
     def __exercise_is_already_logged(self, ctx):
         current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
@@ -249,31 +234,3 @@ class TTSTasks(commands.Cog):
                                                 f"FROM exercise_log)"
                                                 f"WHERE date = "
                                                 f"'{current_date}' AND id = {ctx.author.id}").fetchone()
-
-    @staticmethod
-    def produce_tts_audio(client, response, speech_file_path):
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=response
-        )
-        response.write_to_file(speech_file_path)
-
-    @staticmethod
-    def create_chat(client, user_message, system_message='', temperature=0.65):
-        response = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_message,
-                },
-                {
-                    "role": "user",
-                    "content": user_message,
-                },
-            ],
-            model="gpt-4-0125-preview",
-            temperature=temperature
-        )
-
-        return response.choices[0].message.content

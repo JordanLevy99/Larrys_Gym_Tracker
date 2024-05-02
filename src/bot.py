@@ -13,7 +13,8 @@ from src.extensions.stock_trading.larrys_stock_trader import FinnhubAPI, StockUs
 from src.profiles import ProfileCommands
 from src.tasks import LarrysTasks
 from src.events import LarrysEvents
-from src.tts import TTSTasks
+from src.openai import OpenAICog
+from src.exercise import ExerciseCog
 from src.types import BotConstants, WalkArgs, Songs, ROOT_PATH
 
 
@@ -68,7 +69,8 @@ class LarrysBot:
         await self.discord_client.add_cog(LarrysCommands(self))
         await self.discord_client.add_cog(LarrysTasks(self))
         await self.discord_client.add_cog(ProfileCommands(self))
-        await self.discord_client.add_cog(TTSTasks(self))
+        await self.discord_client.add_cog(OpenAICog(self))
+        await self.discord_client.add_cog(ExerciseCog(self))
         await self.discord_client.add_cog(StockUserCommands(self))
         await self.discord_client.add_cog(StockCommands(self))
         await self.discord_client.add_cog(DebugCommands(self))

@@ -5,6 +5,8 @@ from typing import Tuple
 import discord
 import pandas as pd
 import pytz
+from mutagen.mp3 import MP3
+
 from src.types import BotConstants, WalkArgs
 
 
@@ -59,6 +61,10 @@ def calculate_points(database, users_df, users_durations, length_of_walk_in_minu
         stock_db.connection.commit()
     except Exception as e:
         print('Error updating stock balance:', e)
+
+def get_mp3_duration(file_path):
+        audio = MP3(file_path)
+        return audio.info.length
 
 
 def _update_stock_balance(stock_db, user):

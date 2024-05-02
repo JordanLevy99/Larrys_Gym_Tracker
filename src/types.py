@@ -13,7 +13,7 @@ class BotConstants:
     TEXT_CHANNEL: str = 'larrys-gym-logger'
     VOICE_CHANNEL: str = 'Larry\'s Gym'
     TEXT_CHANNEL_ID: int = 1193971930794045544
-    VOICE_CHANNEL_ID: int = 1143972564616626209
+    VOICE_CHANNEL_ID: int = 1234680075962683482
     DB_PATH: Path = ROOT_PATH / 'data' / DB_FILE
     STOCK_DB_FILE: str = 'larrys_stock_exchange.db'
 

@@ -161,7 +161,7 @@ class LarrysCommands(commands.Cog):
         return leaderboard_df.reset_index().rename(columns={'index': 'name'})
 
     async def update_points(self, ctx, current_time):
-        # Groupby name and id, extract day from date and groupby day, subtract max and min time to get duration
+        # Group by name and id, extract day from date and group by day, subtract max and min time to get duration
         # Divide duration by walk duration to get points
         voice_log_df = pd.read_sql_query("""
                                 SELECT * 

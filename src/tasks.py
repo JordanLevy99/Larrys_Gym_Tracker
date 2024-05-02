@@ -10,9 +10,9 @@ import pandas as pd
 import pytz
 from discord.ext import commands, tasks
 
-from src.tts import TTSTasks
+from src.openai import OpenAICog
 from src.types import ROOT_PATH
-from src.util import _get_current_time, play_audio, determine_winner
+from src.util import _get_current_time, play_audio, determine_winner, get_mp3_duration
 
 
 class LarrysTasks(commands.Cog):
@@ -58,8 +58,8 @@ class LarrysTasks(commands.Cog):
 
                 remote_speech_file_path = Path('data') / f"{previous_month_name}_winner_{pacific_time.year}.wav'"
                 local_speech_file_path = ROOT_PATH / remote_speech_file_path
-                TTSTasks.produce_tts_audio(self.bot.openai_client, winner_message, local_speech_file_path)
-                await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client, TTSTasks.get_duration(local_speech_file_path), 0, False)
+                OpenAICog.produce_tts_audio(self.bot.openai_client, winner_message, local_speech_file_path)
+                await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client, get_mp3_duration(local_speech_file_path), 0, False)
                 await play_audio(voice_client, f'data/songs/first_of_the_month.mp3', self.bot.backend_client, 21, 41, True)
 
     @tasks.loop(hours=24)

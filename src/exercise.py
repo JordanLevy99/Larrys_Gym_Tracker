@@ -5,7 +5,10 @@ from pathlib import Path
 import discord
 import numpy as np
 import pytz
+from discord import Message
 from discord.ext import commands, tasks
+from discord.ext.commands import Context
+from discord.ext.commands.view import StringView
 
 from src.openai import OpenAICog
 from src.types import ROOT_PATH
@@ -85,7 +88,7 @@ class ExerciseCog(commands.Cog):
 
     @tasks.loop(hours=24)
     async def exercise_of_the_day(self):
-        full_response, tldr_response = self.exercise(ctx=None)
+        full_response, tldr_response = self.__get_exercise('text')
 
         # TODO: make a utility function to connect to the voice channel
         voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
@@ -132,8 +135,10 @@ class ExerciseCog(commands.Cog):
 
     @commands.command()
     async def exercise(self, ctx, *args):
-        args = ' '.join(args)
+        return  self.__get_exercise(args)
 
+    def __get_exercise(self, args):
+        args = ' '.join(args)
         difficulty = np.random.choice(list(self.difficulty_points_map.keys()),
                                       p=self.DIFFICULTY_PROBABILITIES)
         previous_exercises = self.__get_previous_exercises(difficulty)
@@ -144,11 +149,9 @@ class ExerciseCog(commands.Cog):
                                               system_message=self.FORMATTED_RESPONSE_SYSTEM_MESSAGE)
         full_response = OpenAICog.create_chat(self.bot.openai_client, tldr_response,
                                               system_message=self.FULL_RESPONSE_SYSTEM_MESSAGE)
-
         print(full_response)
         if 'text' not in args.strip().lower():
             OpenAICog.produce_tts_audio(self.bot.openai_client, full_response, self.local_speech_file_path)
-
         tldr_response = 'tldr:\n\t' + tldr_response
         print(tldr_response)
         return full_response, tldr_response
@@ -172,8 +175,8 @@ class ExerciseCog(commands.Cog):
         await self.bot.discord_client.wait_until_ready()
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=44, second=50,
+        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR+2,
+                                                minute=15, second=0,
                                                 microsecond=0)
         if now > target_time:
             target_time += datetime.timedelta(days=1)

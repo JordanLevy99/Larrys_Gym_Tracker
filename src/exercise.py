@@ -48,12 +48,12 @@ class ExerciseOfTheDayResponseParser:
 
 
 class ExerciseCog(commands.Cog):
-
     FULL_RESPONSE_SYSTEM_MESSAGE = (
         "You are an assistant that is designed to motivate people who are on their morning walk"
         " to do the exercise of the day. Announce the exercise, reps and/or duration, and the "
         "number of points awarded from the user message in a motivational, "
-        "competitive, concise manner with some flair.")
+        "competitive, concise manner with some flair. Provide a brief summary "
+        "of the exercise and a youtube link explaining the exercise at the end")
 
     FORMATTED_RESPONSE_SYSTEM_MESSAGE = ('Given a difficulty ranging from easy to extreme '
                                          '(with medium and hard inbetween), points awarded, '
@@ -135,10 +135,14 @@ class ExerciseCog(commands.Cog):
 
     @commands.command()
     async def exercise(self, ctx, *args):
-        return  self.__get_exercise(args)
+        args = ' '.join(args)
+        full_response, tldr_response = self.__get_exercise(args)
+        if 'send' in args:
+            await ctx.send(full_response)
+            await ctx.send('\n\n' + tldr_response)
+        return full_response, tldr_response
 
     def __get_exercise(self, args):
-        args = ' '.join(args)
         difficulty = np.random.choice(list(self.difficulty_points_map.keys()),
                                       p=self.DIFFICULTY_PROBABILITIES)
         previous_exercises = self.__get_previous_exercises(difficulty)

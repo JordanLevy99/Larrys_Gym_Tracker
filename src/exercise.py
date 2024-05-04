@@ -88,10 +88,13 @@ class ExerciseCog(commands.Cog):
 
     @tasks.loop(hours=24)
     async def exercise_of_the_day(self):
-        full_response, tldr_response = self.__get_exercise('text')
+        voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
+        if voice_channel and len(voice_channel.members) == 0:
+            full_response, tldr_response = self.__get_exercise('text')
+        else:
+            full_response, tldr_response = self.__get_exercise()
 
         # TODO: make a utility function to connect to the voice channel
-        voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
 
         if voice_channel and len(voice_channel.members) >= 1:
             text_channel, voice_client = await self.__get_voice_client_and_text_channel(voice_channel)
@@ -142,7 +145,7 @@ class ExerciseCog(commands.Cog):
             await ctx.send('\n\n' + tldr_response)
         return full_response, tldr_response
 
-    def __get_exercise(self, args):
+    def __get_exercise(self, args=''):
         difficulty = np.random.choice(list(self.difficulty_points_map.keys()),
                                       p=self.DIFFICULTY_PROBABILITIES)
         previous_exercises = self.__get_previous_exercises(difficulty)
@@ -179,7 +182,7 @@ class ExerciseCog(commands.Cog):
         await self.bot.discord_client.wait_until_ready()
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR+8,
+        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
                                                 minute=44, second=50,
                                                 microsecond=0)
         if now > target_time:

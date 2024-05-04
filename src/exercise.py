@@ -179,7 +179,7 @@ class ExerciseCog(commands.Cog):
         await self.bot.discord_client.wait_until_ready()
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
+        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR+8,
                                                 minute=44, second=50,
                                                 microsecond=0)
         if now > target_time:

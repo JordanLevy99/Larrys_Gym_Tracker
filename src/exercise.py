@@ -52,8 +52,7 @@ class ExerciseCog(commands.Cog):
         "You are an assistant that is designed to motivate people who are on their morning walk"
         " to do the exercise of the day. Announce the exercise, reps and/or duration, and the "
         "number of points awarded from the user message in a motivational, "
-        "competitive, concise manner with some flair. Provide a brief summary "
-        "of the exercise and a youtube link explaining the exercise at the end")
+        "competitive, concise manner with some flair. Give a brief explanation on how to do the exercise at the end.")
 
     FORMATTED_RESPONSE_SYSTEM_MESSAGE = ('Given a difficulty ranging from easy to extreme '
                                          '(with medium and hard inbetween), points awarded, '

@@ -20,11 +20,10 @@ class YoutubeMusicPlayer(commands.Cog):
         ydl_opts = {
             'extract_audio': True,
             'format': 'bestaudio',
-            'outtmpl': 'data/%(title)s.%(ext)s'
+            'outtmpl': 'data/%(title)s.%(ext)s',
+            'proxy': 'http://159.89.227.166:3128'
         }
 
-        # remote_file_path = Path('data') / "response.mp3"
-        # local_file_path = ROOT_PATH / remote_file_path
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             video_title = info['title']

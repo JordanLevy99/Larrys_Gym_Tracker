@@ -15,7 +15,6 @@ class YoutubeMusicPlayer(commands.Cog):
     @commands.command()
     async def play(self, ctx, url: str):
         # Find the voice channel with the most members
-        voice_channel = await self.__connect_to_voice_channel(ctx)
 
         ydl_opts = {
             'extract_audio': True,
@@ -28,12 +27,11 @@ class YoutubeMusicPlayer(commands.Cog):
             info = ydl.extract_info(url, download=True)
             video_title = info['title']
             file_path = ydl.prepare_filename(info)
-            print(info.keys())
             duration = info['duration']
             print(f"Duration: {duration}")
-            # video.download(url)
             print(f'Now playing {file_path}...')
             await ctx.send(f'Now playing {video_title}...')
+            voice_channel = await self.__connect_to_voice_channel(ctx)
             await play_audio(voice_channel, file_path, self.bot.backend_client,
                              duration=duration, start_second=0, download=False)
 
@@ -43,7 +41,7 @@ class YoutubeMusicPlayer(commands.Cog):
         if voice_channel:
             voice_channel.stop()
             await voice_channel.disconnect()
-            await ctx.send("Stopped playback and disconnected from voice channel")
+            print("Stopped playback and disconnected from voice channel")
 
     async def __connect_to_voice_channel(self, ctx):
         max_members = 0

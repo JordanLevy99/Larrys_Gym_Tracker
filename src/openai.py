@@ -51,7 +51,7 @@ class OpenAICog(commands.Cog):
         response.write_to_file(speech_file_path)
 
     @staticmethod
-    def create_chat(client, user_message, system_message='', temperature=0.65, model='gpt-4-0125-preview'):
+    def create_chat(client, user_message, system_message='', temperature=0.65, model='gpt-4o'):
         response = client.chat.completions.create(
             messages=[
                 {

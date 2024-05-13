@@ -1,6 +1,10 @@
+from pathlib import Path
+
 import discord
 from discord.ext import commands
 import yt_dlp
+
+from src.types import ROOT_PATH
 
 
 class YoutubeMusicPlayer(commands.Cog):
@@ -12,22 +16,25 @@ class YoutubeMusicPlayer(commands.Cog):
         # Find the voice channel with the most members
         voice_channel = await self.__connect_to_voice_channel(ctx)
 
-        # Download and play song
-        ydl_opts = {'format': 'bestaudio'}
+        ydl_opts = {
+            'extract_audio': True,
+            'format': 'bestaudio',
+            'outtmpl': 'data/%(title)s.%(ext)s'
+        }
 
-        with yt_dlp.YoutubeDL({'extract_audio': True, 'format': 'bestaudio', 'outtmpl': '%(title)s.mp3'}) as video:
-            info_dict = video.extract_info(url, download=True)
-            video_title = info_dict['title']
-            print(video_title)
-            video.download(url)
+        # remote_file_path = Path('data') / "response.mp3"
+        # local_file_path = ROOT_PATH / remote_file_path
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            video_title = info['title']
+            file_path = ydl.prepare_filename(info)
+
+            print(file_path)
+            # video.download(url)
             print("Successfully Downloaded - see local folder on Google Colab")
-            voice_channel.play(discord.FFmpegPCMAudio(f'{video_title}.mp3'))
-        # with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        #     info = ydl.extract_info(url, download=False)
-        #     print(info['formats'][0])
-        #     url2 = info['formats'][0]['url']
-        #     voice_channel.play(discord.FFmpegPCMAudio(url2))
-        #     await ctx.send('Now playing...')
+            voice_channel.play(discord.FFmpegPCMAudio(executable="ffmpeg", source=file_path))
+            print(f'Now playing {file_path}...')
+            await ctx.send('Now playing...')
 
     async def __connect_to_voice_channel(self, ctx):
         max_members = 0

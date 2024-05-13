@@ -25,9 +25,8 @@ class LarrysBot:
 
         self.args = parse_args()
 
-        # TODO: figure out this issue (relevant for tts)
-        # if self.args.test:
-        #     discord.opus.load_opus('/opt/local/lib/libopus.0.dylib')
+        if self.args.test:
+            discord.opus.load_opus('/usr/local/lib/libopus.dylib')
 
         intents = self._get_intents()
         self.discord_client = commands.Bot(command_prefix='!', intents=intents)

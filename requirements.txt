@@ -10,3 +10,4 @@ pytz
 openai
 mutagen
 finnhub-python
+yt-dlp

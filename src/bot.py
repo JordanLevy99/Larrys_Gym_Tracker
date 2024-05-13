@@ -9,6 +9,7 @@ from openai import OpenAI
 from cli.args import parse_args
 from src.backend import Dropbox, LarrysDatabase, LarrysStockExchange
 from src.commands import LarrysCommands, DebugCommands
+from src.extensions.music_player.youtube import YoutubeMusicPlayer
 from src.extensions.stock_trading.larrys_stock_trader import FinnhubAPI, StockUserCommands, StockCommands
 from src.profiles import ProfileCommands
 from src.tasks import LarrysTasks
@@ -74,3 +75,4 @@ class LarrysBot:
         await self.discord_client.add_cog(StockUserCommands(self))
         await self.discord_client.add_cog(StockCommands(self))
         await self.discord_client.add_cog(DebugCommands(self))
+        await self.discord_client.add_cog(YoutubeMusicPlayer(self))

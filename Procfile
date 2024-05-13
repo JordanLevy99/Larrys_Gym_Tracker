@@ -1,1 +1,1 @@
-worker: python larrys_gym_tracker.py --test
+worker: python larrys_gym_tracker.py

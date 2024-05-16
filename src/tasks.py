@@ -109,7 +109,7 @@ class LarrysTasks(commands.Cog):
         await self.bot.discord_client.wait_until_ready()
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR, minute=self.bot.walk_constants.WINNER_MINUTE, second=0,
+        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR, minute=self.bot.walk_constants.WINNER_MINUTE+9, second=0,
                                        microsecond=0)
         if now > target_time:
             target_time += timedelta(days=1)

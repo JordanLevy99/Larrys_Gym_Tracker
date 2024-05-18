@@ -44,6 +44,7 @@ class ProfileCommands(commands.Cog):
             'points': (user_points_df,)
         }
         profile = ''
+        print(self.__sections)
         for section in self.__sections:
             profile += ProfileFactory().create(section, profile_data[section]).generate()
         await ctx.send(profile)
@@ -66,7 +67,7 @@ class ProfileCommands(commands.Cog):
     def __set_sections(self, name, query):
         if len(query) > 1 and name == query[0]:
             self.__sections = query[1:]
-        elif name == '':
+        elif name == '' and query:
             self.__sections = query
 
     def __get_user_points_by_type_df(self, name):

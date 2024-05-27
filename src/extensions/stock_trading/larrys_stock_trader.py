@@ -136,8 +136,11 @@ class StockUserCommands(commands.Cog):
         walkers = discord.utils.get(ctx.guild.roles, name='Walker').members
         net_worth_map = {}
         for walker in walkers:
-            net_worth, return_on_investments = self.get_investment_stats(walker.id)
-            net_worth_map[walker.name] = [net_worth, return_on_investments]
+            try:
+                net_worth, return_on_investments = self.get_investment_stats(walker.id)
+                net_worth_map[walker.name] = [net_worth, return_on_investments]
+            except Exception as e:
+                print(f"Error getting net worth for {walker.name}: {e}")
         net_worth_leaderboard = sorted(net_worth_map.items(), key=lambda x: x[1][0], reverse=True)
         return net_worth_leaderboard
 

@@ -30,6 +30,38 @@ class YoutubeMusicPlayer(commands.Cog):
         else:
             await ctx.send(f"Added {url} to the queue")
 
+    @commands.command()
+    async def queue(self, ctx):
+        guild_id = ctx.guild.id
+        if guild_id in self.queues and self.queues[guild_id]:
+            await ctx.send(f"Current queue: {self.queues[guild_id]}")
+        else:
+            await ctx.send("No songs in queue")
+
+    @commands.command()
+    async def pause(self, ctx):
+        voice_channel = discord.utils.get(self.bot.discord_client.voice_clients, guild=ctx.guild)
+        if voice_channel:
+            voice_channel.pause()
+            print("Paused playback")
+
+    @commands.command()
+    async def resume(self, ctx):
+        voice_channel = discord.utils.get(self.bot.discord_client.voice_clients, guild=ctx.guild)
+        if voice_channel:
+            voice_channel.resume()
+            print("Resumed playback")
+
+    # @commands.command()
+    # async def rewind(self, ctx, seconds: int):
+    #     """Rewind audio playback."""
+    #     voice_client = ctx.message.guild.voice_client
+    #     if voice_client.is_playing():
+    #         voice_client.stop()
+    #         self.current_playback_position = max(0, self.current_playback_position - seconds)
+    #         await play_audio(voice_client, self.current_file_path, self.bot.backend_client,
+    #                          start_second=self.current_playback_position)
+
     async def start_playing(self, ctx):
         guild_id = ctx.guild.id
         if guild_id in self.queues and self.queues[guild_id]:

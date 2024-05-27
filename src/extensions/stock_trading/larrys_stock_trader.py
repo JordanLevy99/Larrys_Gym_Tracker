@@ -123,7 +123,10 @@ class StockUserCommands(commands.Cog):
         args = ' '.join(args)
         args = args.split()
         symbol = args[0].upper().strip().strip('$')
-        quantity = int(args[1])
+        if isinstance(args[1], str) and args[1].lower() == 'all':
+            quantity = 'all'
+        else:
+            quantity = int(args[1])
         return symbol, quantity
 
 
@@ -148,9 +151,14 @@ class StockTransaction:
     def _setup_transaction(self):
         self.user_balance = self.db.get_user_balance(self.user_id)
         self.current_price = self.stock_api.get_current_price(self.symbol)
+        if self.quantity == 'all':
+            self.quantity = self.get_stock_quantity_all()
         self.total_cost = self.current_price * self.quantity
         if self.total_cost == 0:
             raise SymbolNotFound(f"Symbol **{self.symbol}** not found.")
+
+    def get_stock_quantity_all(self) -> int:
+        pass
 
     def execute(self):
         pass
@@ -179,20 +187,29 @@ class StockBuyTransaction(StockTransaction):
         else:
             return f"Insufficient balance (**{self.user_balance}** < **{self.total_cost}**)"
 
+    def get_stock_quantity_all(self) -> int:
+        return self.user_balance // self.current_price
+
 
 class StockSellTransaction(StockTransaction):
 
     def execute(self) -> str:
-        user_stocks = self.db.get_user_stocks(self.user_id)
-        print('user stocks:', user_stocks)
-        quantity = self.__get_stock_quantity(user_stocks)
+        held_stock_quantity = self.__get_held_stock_quantity()
 
-        if quantity >= self.quantity:
+        if held_stock_quantity >= self.quantity:
             self.user_balance += self.total_cost
             self.update_database('sell')
             return f"Sold **{self.quantity}** shares of **{self.symbol}** at **{self.current_price}** each for a total of **{self.total_cost}**"
         else:
-            return "Insufficient shares to sell."
+            return f"Insufficient shares to sell (**{self.quantity}** > **{held_stock_quantity}**)"
+
+    def get_stock_quantity_all(self) -> int:
+        return self.__get_held_stock_quantity()
+
+    def __get_held_stock_quantity(self):
+        user_stocks = self.db.get_user_stocks(self.user_id)
+        quantity = self.__get_stock_quantity(user_stocks)
+        return quantity
 
     def __get_stock_quantity(self, user_stocks):
         quantity = 0
@@ -243,8 +260,18 @@ class PortfolioPrinter:
             _, symbol, quantity, cost_basis, price = stock
             total_value = quantity * price
             portfolio_value += total_value
+            gain_or_loss = self.__get_gain_or_loss(cost_basis, price)
+            percent_change = round(((price - cost_basis) / cost_basis) * 100, 2)
             return_string += (f"**{symbol}**: \n\tQuantity: **{quantity}**\n\t"
                               f"Cost Basis: **{cost_basis}**\n\tCurrent Price: **{price}**\n\t"
-                              f"Total Value: **{total_value}**\n\n")
+                              f"Total Value: **{total_value} ({percent_change}% {gain_or_loss})**\n\n")
         prefix += f"{portfolio_value}**"
         return return_string
+
+    @staticmethod
+    def __get_gain_or_loss(cost_basis, price):
+        if price > cost_basis:
+            gain_or_loss = "gain"
+        else:
+            gain_or_loss = "loss"
+        return gain_or_loss

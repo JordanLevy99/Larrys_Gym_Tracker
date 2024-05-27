@@ -27,6 +27,8 @@ class YoutubeMusicPlayer(commands.Cog):
         voice_channel = discord.utils.get(self.bot.discord_client.voice_clients, guild=ctx.guild)
         if not voice_channel or not voice_channel.is_playing():
             await self.start_playing(ctx)
+        else:
+            await ctx.send(f"Added {url} to the queue")
 
     async def start_playing(self, ctx):
         guild_id = ctx.guild.id
@@ -50,8 +52,22 @@ class YoutubeMusicPlayer(commands.Cog):
                 await ctx.send(f'Now playing {video_title}...')
                 voice_channel = await self.__connect_to_voice_channel(ctx)
                 await play_audio(voice_channel, file_path, self.bot.backend_client,
-                                 duration=duration, start_second=0, download=False,
-                                 after=lambda e: self.bot.discord_client.loop.create_task(self.start_playing(ctx)))
+                                 duration=duration, start_second=0, download=False)
+            if self.queues[guild_id]:
+                await self.start_playing(ctx)
+
+    @commands.command()
+    async def skip(self, ctx):
+        guild_id = ctx.guild.id
+        if guild_id in self.queues:
+            if self.queues[guild_id]:
+                self.queues[guild_id].pop(0)
+                print("Skipped current song")
+                if self.queues[guild_id]:
+                    await self.start_playing(ctx)
+            else:
+                print("No songs in queue")
+
     @commands.command()
     async def stop(self, ctx):
         voice_channel = discord.utils.get(self.bot.discord_client.voice_clients, guild=ctx.guild)

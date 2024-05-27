@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import datetime
+from typing import List, Tuple
 
 import discord
 import pytz
@@ -103,22 +104,50 @@ class StockUserCommands(commands.Cog):
     @commands.command()
     async def net_worth(self, ctx):
         user_id = ctx.author.id
-        net_worth, return_on_investments  = self.get_investment_stats(user_id)
+        net_worth, return_on_investments = self.get_investment_stats(user_id)
         percent_change = round(((net_worth - 10000) / 10000) * 100, 2)
-        gain_or_loss = "gain" if percent_change > 0 else "loss"
+        gain_or_loss = self.get_gain_or_loss(percent_change)
         await ctx.send(f"Your current net worth is **{round(net_worth, 2)}**\n\t"
                        f"Change in Value: **{percent_change}**% **{gain_or_loss})**\n\n")
 
+    @commands.command()
+    async def net_worth_leaderboard(self, ctx):
+        leaderboard_string = await self.get_net_worth_leaderboard(ctx)
+        await ctx.send(leaderboard_string)
+
+    async def get_net_worth_leaderboard(self, ctx):
+        leaderboard = self.__get_net_worth_leaderboard_list(ctx)
+        return_string = self.__get_net_worth_leaderboard_string(leaderboard)
+        return return_string
+
     def get_investment_stats(self, user_id):
         portfolio = self.__get_portfolio(user_id)
-        total_value, cost_bases = portfolio.get_total_values()
+        total_value, total_cost_basis = portfolio.get_total_values()
         net_worth = total_value + self.db.get_user_balance(user_id)
-        return_on_investments = round(((total_value - cost_bases) / cost_bases) * 100, 2)
+        epsilon = 0.00001
+        return_on_investments = round(((total_value - total_cost_basis) / (total_cost_basis + epsilon)) * 100, 2)
         return net_worth, return_on_investments
 
-    def get_net_worth(self, user_id):
-        net_worth, _ = self.get_investment_stats(user_id)
-        return net_worth
+    @staticmethod
+    def get_gain_or_loss(percent_change):
+        return "gain" if percent_change >= 0 else "loss"
+
+    def __get_net_worth_leaderboard_list(self, ctx):
+        walkers = discord.utils.get(ctx.guild.roles, name='Walker').members
+        net_worth_map = {}
+        for walker in walkers:
+            net_worth, return_on_investments = self.get_investment_stats(walker.id)
+            net_worth_map[walker.name] = [net_worth, return_on_investments]
+        net_worth_leaderboard = sorted(net_worth_map.items(), key=lambda x: x[1][0], reverse=True)
+        return net_worth_leaderboard
+
+    def __get_net_worth_leaderboard_string(self, leaderboard: List[Tuple[str, List[float]]]):
+        return_string = ""
+        for username, (net_worth, return_on_investments) in leaderboard:
+            gain_or_loss = self.get_gain_or_loss(return_on_investments)
+            return_string += (f"{username}: **{round(net_worth, 2)}** "
+                              f"({return_on_investments}% {gain_or_loss})\n")
+        return return_string
 
     def __get_portfolio(self, user_id) -> Portfolio:
         user_stocks = self.db.get_user_stocks(user_id)

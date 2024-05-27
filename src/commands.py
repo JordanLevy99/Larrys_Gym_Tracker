@@ -7,6 +7,7 @@ from tabulate import tabulate
 import discord
 from discord.ext import commands
 
+from src.extensions.stock_trading.larrys_stock_trader import StockUserCommands
 # from src.bot import LarrysBot
 from src.types import BotConstants, ROOT_PATH
 from src.backend import Database
@@ -112,7 +113,10 @@ class LarrysCommands(commands.Cog):
         if not self.bot.walk_constants.WALK_ENDED:
             current_time, _ = _get_current_time()
             await self.update_points(ctx, current_time)
+            net_worth_leaderboard = await StockUserCommands(self.bot).get_net_worth_leaderboard(ctx)
             self.bot.bot_constants.WALK_ENDED = True
+            await ctx.send(f'Getting the Net Worth Leaderboard...')
+            await ctx.send(net_worth_leaderboard)
 
     # noinspection SqlUnused
     @commands.command()
@@ -140,6 +144,7 @@ class LarrysCommands(commands.Cog):
         embed = discord.Embed(description=f"**{points_column.capitalize()} Leaderboard**")
         embed.set_footer(text=leaderboard_table)
         await ctx.send(embed=embed)
+
 
     @staticmethod
     def __get_leaderboard_query(points_column, type_filter, time_filter):

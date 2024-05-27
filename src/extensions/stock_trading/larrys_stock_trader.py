@@ -1,11 +1,10 @@
-import os
 from abc import ABC, abstractmethod
 import datetime
+from typing import List, Tuple
 
 import discord
 import pytz
 from discord.ext import commands
-from dotenv import load_dotenv
 
 import finnhub
 
@@ -47,13 +46,15 @@ class Portfolio:
             self.db.update_stock_price(user_id, symbol, price)
         self.db.connection.commit()
 
-    def get_total_value(self):
+    def get_total_values(self):
         total_value = 0
+        total_cost_basis = 0
         self._update_stock_prices()
         for stock in self.stocks:
-            _, _, quantity, _, current_price = stock
+            _, _, quantity, cost_basis, current_price = stock
             total_value += current_price * quantity
-        return total_value
+            total_cost_basis += cost_basis * quantity
+        return total_value, total_cost_basis
 
 
 class StockUserCommands(commands.Cog):
@@ -103,17 +104,53 @@ class StockUserCommands(commands.Cog):
     @commands.command()
     async def net_worth(self, ctx):
         user_id = ctx.author.id
-        net_worth = self.get_net_worth(user_id)
-        await ctx.send(f"Your current net worth is **{round(net_worth, 2)}**")
+        net_worth, return_on_investments = self.get_investment_stats(user_id)
+        percent_change = round(((net_worth - 10000) / 10000) * 100, 2)
+        gain_or_loss = self.get_gain_or_loss(percent_change)
+        await ctx.send(f"Your current net worth is **{round(net_worth, 2)}**\n\t"
+                       f"Change in Value: **{percent_change}**% **{gain_or_loss})**\n\n")
 
-    def get_net_worth(self, user_id):
+    @commands.command()
+    async def net_worth_leaderboard(self, ctx):
+        leaderboard_string = await self.get_net_worth_leaderboard(ctx)
+        await ctx.send(leaderboard_string)
+
+    async def get_net_worth_leaderboard(self, ctx):
+        leaderboard = self.__get_net_worth_leaderboard_list(ctx)
+        return_string = self.__get_net_worth_leaderboard_string(leaderboard)
+        return return_string
+
+    def get_investment_stats(self, user_id):
         portfolio = self.__get_portfolio(user_id)
-        net_worth = portfolio.get_total_value() + self.db.get_user_balance(user_id)
-        return net_worth
+        total_value, total_cost_basis = portfolio.get_total_values()
+        net_worth = total_value + self.db.get_user_balance(user_id)
+        epsilon = 0.00001
+        return_on_investments = round(((total_value - total_cost_basis) / (total_cost_basis + epsilon)) * 100, 2)
+        return net_worth, return_on_investments
+
+    @staticmethod
+    def get_gain_or_loss(percent_change):
+        return "gain" if percent_change >= 0 else "loss"
+
+    def __get_net_worth_leaderboard_list(self, ctx):
+        walkers = discord.utils.get(ctx.guild.roles, name='Walker').members
+        net_worth_map = {}
+        for walker in walkers:
+            net_worth, return_on_investments = self.get_investment_stats(walker.id)
+            net_worth_map[walker.name] = [net_worth, return_on_investments]
+        net_worth_leaderboard = sorted(net_worth_map.items(), key=lambda x: x[1][0], reverse=True)
+        return net_worth_leaderboard
+
+    def __get_net_worth_leaderboard_string(self, leaderboard: List[Tuple[str, List[float]]]):
+        return_string = ""
+        for username, (net_worth, return_on_investments) in leaderboard:
+            gain_or_loss = self.get_gain_or_loss(return_on_investments)
+            return_string += (f"{username}: **{round(net_worth, 2)}** "
+                              f"({return_on_investments}% {gain_or_loss})\n")
+        return return_string
 
     def __get_portfolio(self, user_id) -> Portfolio:
         user_stocks = self.db.get_user_stocks(user_id)
-        print('original stock prices:', user_stocks)
         portfolio = Portfolio(user_stocks, self.bot.stock_api, self.db)
         upload(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         return portfolio
@@ -260,16 +297,17 @@ class PortfolioPrinter:
             _, symbol, quantity, cost_basis, price = stock
             total_value = quantity * price
             portfolio_value += total_value
-            gain_or_loss = self.__get_gain_or_loss(cost_basis, price)
+            gain_or_loss = self._get_gain_or_loss(cost_basis, price)
             percent_change = round(((price - cost_basis) / cost_basis) * 100, 2)
             return_string += (f"**{symbol}**: \n\tQuantity: **{quantity}**\n\t"
                               f"Cost Basis: **{cost_basis}**\n\tCurrent Price: **{price}**\n\t"
-                              f"Total Value: **{total_value} ({percent_change}% {gain_or_loss})**\n\n")
+                              f"Total Value: **{total_value}**\n\t"
+                              f"Change in Value: **{percent_change}**% **{gain_or_loss})**\n\n")
         prefix += f"{portfolio_value}**"
         return return_string
 
     @staticmethod
-    def __get_gain_or_loss(cost_basis, price):
+    def _get_gain_or_loss(cost_basis, price):
         if price > cost_basis:
             gain_or_loss = "gain"
         else:

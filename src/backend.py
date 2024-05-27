@@ -171,7 +171,6 @@ class LarrysStockExchange(Database):
         self.cursor.execute(
             "SELECT user_id, symbol, quantity, cost_basis, current_price FROM Portfolio WHERE user_id = ?", (user_id,))
         user_stocks = self.cursor.fetchall()
-        print('User stocks:', user_stocks)
         return [list(stock) for stock in user_stocks]
 
     def update_stock_price(self, user_id, symbol, current_price):

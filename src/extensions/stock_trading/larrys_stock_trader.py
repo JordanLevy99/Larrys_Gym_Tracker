@@ -106,10 +106,9 @@ class StockUserCommands(commands.Cog):
     async def net_worth(self, ctx):
         user_id = ctx.author.id
         net_worth, return_on_investments = self.get_investment_stats(user_id)
-        percent_change = round(((net_worth - 10000) / 10000) * 100, 2)
-        gain_or_loss = self.get_gain_or_loss(percent_change)
+        gain_or_loss = self.get_gain_or_loss(return_on_investments)
         await ctx.send(f"Your current net worth is **{round(net_worth, 2)}**\n\t"
-                       f"Return on Investments: **{percent_change}**% **{gain_or_loss})**\n\n")
+                       f"Return on Investments: **{return_on_investments}**% **{gain_or_loss}**\n\n")
 
     @commands.command()
     async def net_worth_leaderboard(self, ctx):
@@ -124,12 +123,14 @@ class StockUserCommands(commands.Cog):
     def get_investment_stats(self, user_id):
         portfolio = self.__get_portfolio(user_id)
         total_value = portfolio.get_total_value()
-        net_worth = total_value + self.db.get_user_balance(user_id)
+        user_balance = self.db.get_user_balance(user_id)
+        net_worth = total_value + user_balance
         epsilon = 0.00001
-        points_awarded = self.bot.database.connection.execute("""SELECT SUM(points_awarded) 
-                                                                             FROM points WHERE "id" = ?""",
-                                                              user_id).fetchone()[0]
-        return_on_investments = round(((total_value - points_awarded) / (points_awarded + epsilon)) * 100, 2)
+        user_id = str(user_id)
+        points_awarded = self.bot.database.connection.execute(f"""SELECT SUM(points_awarded) 
+                                                                             FROM points WHERE id = \
+                                                                             "{user_id}\"""").fetchone()[0]
+        return_on_investments = round(((net_worth - points_awarded) / (points_awarded + epsilon)) * 100, 2)
         return net_worth, return_on_investments
 
     @staticmethod

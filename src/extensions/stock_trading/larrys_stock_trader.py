@@ -39,6 +39,16 @@ class Portfolio:
         self.db = db
         self._update_stock_prices()
 
+    def get_total_value(self):
+        total_value = 0
+        # total_cost_basis = 0
+        self._update_stock_prices()
+        for stock in self.stocks:
+            _, _, quantity, cost_basis, current_price = stock
+            total_value += current_price * quantity
+            # total_cost_basis += cost_basis * quantity
+        return total_value  #, total_cost_basis
+
     def _update_stock_prices(self):
         for stock in self.stocks:
             user_id, symbol, price = stock[0], stock[1], stock[-1]
@@ -46,16 +56,6 @@ class Portfolio:
             stock[-1] = self.stock_api.get_current_price(symbol)
             self.db.update_stock_price(user_id, symbol, price)
         self.db.connection.commit()
-
-    def get_total_values(self):
-        total_value = 0
-        total_cost_basis = 0
-        self._update_stock_prices()
-        for stock in self.stocks:
-            _, _, quantity, cost_basis, current_price = stock
-            total_value += current_price * quantity
-            total_cost_basis += cost_basis * quantity
-        return total_value, total_cost_basis
 
 
 class StockUserCommands(commands.Cog):
@@ -109,7 +109,7 @@ class StockUserCommands(commands.Cog):
         percent_change = round(((net_worth - 10000) / 10000) * 100, 2)
         gain_or_loss = self.get_gain_or_loss(percent_change)
         await ctx.send(f"Your current net worth is **{round(net_worth, 2)}**\n\t"
-                       f"Change in Value: **{percent_change}**% **{gain_or_loss})**\n\n")
+                       f"Return on Investments: **{percent_change}**% **{gain_or_loss})**\n\n")
 
     @commands.command()
     async def net_worth_leaderboard(self, ctx):
@@ -123,10 +123,13 @@ class StockUserCommands(commands.Cog):
 
     def get_investment_stats(self, user_id):
         portfolio = self.__get_portfolio(user_id)
-        total_value, total_cost_basis = portfolio.get_total_values()
+        total_value = portfolio.get_total_value()
         net_worth = total_value + self.db.get_user_balance(user_id)
         epsilon = 0.00001
-        return_on_investments = round(((total_value - total_cost_basis) / (total_cost_basis + epsilon)) * 100, 2)
+        points_awarded = self.bot.database.connection.execute("""SELECT SUM(points_awarded) 
+                                                                             FROM points WHERE "id" = ?""",
+                                                              user_id).fetchone()[0]
+        return_on_investments = round(((total_value - points_awarded) / (points_awarded + epsilon)) * 100, 2)
         return net_worth, return_on_investments
 
     @staticmethod

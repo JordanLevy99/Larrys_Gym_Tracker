@@ -7,9 +7,13 @@ from datetime import timedelta
 # # Connect to the database
 # conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
 if __name__ == '__main__':
-    # conn = sqlite3.connect('../larrys_stock_exchange.db')
-    # cursor = conn.cursor()
+    conn = sqlite3.connect('../larrys_stock_exchange.db')
+    cursor = conn.cursor()
 
+    # Update user balance
+    query = "UPDATE User SET current_balance = 99.45636112963 WHERE name = 'dinkstar'"
+    cursor.execute(query)
+    conn.commit()
     # # Update the format of dates to include microsecond
     # query = "UPDATE voice_log SET time = CASE WHEN time LIKE '%.%' THEN time ELSE strftime('%Y-%m-%d %H:%M:%S.000000', time) END"
     # cursor.execute(query)
@@ -94,48 +98,48 @@ if __name__ == '__main__':
 
 
 
-    def append_databases(source_db_path, destination_db_path):
-        # Connect to the source database
-        source_conn = sqlite3.connect(source_db_path)
-        source_cursor = source_conn.cursor()
-
-        # Connect to the destination database
-        destination_conn = sqlite3.connect(destination_db_path)
-        destination_cursor = destination_conn.cursor()
-
-        # Get the list of tables in the source database
-        source_cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = source_cursor.fetchall()
-
-        for table_name in tables:
-            table_name = table_name[0]  # Extract table name from tuple
-
-            # Get all data from the source table
-            source_cursor.execute(f"SELECT * FROM {table_name};")
-            rows = source_cursor.fetchall()
-
-            # Get column names from the source table
-            source_cursor.execute(f"PRAGMA table_info({table_name});")
-            columns = source_cursor.fetchall()
-            column_names = [col[1] for col in columns]
-
-            # Prepare the insert statement for the destination table
-            placeholders = ', '.join(['?'] * len(column_names))
-            insert_statement = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({placeholders});"
-
-            # Insert data into the destination table
-            destination_cursor.executemany(insert_statement, rows)
-
-        # Commit changes and close the connections
-        destination_conn.commit()
-        source_conn.close()
-        destination_conn.close()
-
-
-    # Example usage
-    source_db = '../larrys_database-7.db'
-    destination_db = '../larrys_database.db'
-    append_databases(source_db, destination_db)
+    # def append_databases(source_db_path, destination_db_path):
+    #     # Connect to the source database
+    #     source_conn = sqlite3.connect(source_db_path)
+    #     source_cursor = source_conn.cursor()
+    #
+    #     # Connect to the destination database
+    #     destination_conn = sqlite3.connect(destination_db_path)
+    #     destination_cursor = destination_conn.cursor()
+    #
+    #     # Get the list of tables in the source database
+    #     source_cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    #     tables = source_cursor.fetchall()
+    #
+    #     for table_name in tables:
+    #         table_name = table_name[0]  # Extract table name from tuple
+    #
+    #         # Get all data from the source table
+    #         source_cursor.execute(f"SELECT * FROM {table_name};")
+    #         rows = source_cursor.fetchall()
+    #
+    #         # Get column names from the source table
+    #         source_cursor.execute(f"PRAGMA table_info({table_name});")
+    #         columns = source_cursor.fetchall()
+    #         column_names = [col[1] for col in columns]
+    #
+    #         # Prepare the insert statement for the destination table
+    #         placeholders = ', '.join(['?'] * len(column_names))
+    #         insert_statement = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({placeholders});"
+    #
+    #         # Insert data into the destination table
+    #         destination_cursor.executemany(insert_statement, rows)
+    #
+    #     # Commit changes and close the connections
+    #     destination_conn.commit()
+    #     source_conn.close()
+    #     destination_conn.close()
+    #
+    #
+    # # Example usage
+    # source_db = '../larrys_database-7.db'
+    # destination_db = '../larrys_database.db'
+    # append_databases(source_db, destination_db)
 
     # points_df = pd.read_sql_query("SELECT * FROM points", conn)
     # print(points_df.tail(30))

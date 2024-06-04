@@ -314,7 +314,7 @@ class PortfolioPrinter:
             return_string += (f"**{symbol}**: \n\tQuantity: **{quantity}**\n\t"
                               f"Cost Basis: **{cost_basis}**\n\tCurrent Price: **{price}**\n\t"
                               f"Total Value: **{total_value}**\n\t"
-                              f"Change in Value: **{percent_change}**% **{gain_or_loss})**\n\n")
+                              f"Change in Value: **{percent_change}**% **{gain_or_loss}**\n\n")
         prefix += f"{portfolio_value}**"
         return return_string
 

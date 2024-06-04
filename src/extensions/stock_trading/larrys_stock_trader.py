@@ -1,3 +1,4 @@
+import uuid
 from abc import ABC, abstractmethod
 import datetime
 from typing import List, Tuple
@@ -204,17 +205,25 @@ class StockTransaction:
         pass
 
     def update_database(self, transaction_type):
-        self.db.update_user_balance(self.user_id, self.user_balance)
+        transaction_id = self.__get_transaction_id()
         transaction = Transaction(self.user_id,
                                   self.symbol,
                                   transaction_type,
                                   self.quantity,
                                   self.current_price,
-                                  datetime.datetime.now(tz=pytz.timezone('US/Pacific')))
-        transaction_id = self.db.insert_transaction(transaction)
+                                  datetime.datetime.now(tz=pytz.timezone('US/Pacific')),
+                                  transaction_id)
+
+        self.db.insert_transaction(transaction)
         self.db.update_portfolio(transaction_id)
+        self.db.update_user_balance(self.user_id, self.user_balance)
+
         self.db.connection.commit()
         upload(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
+
+    @staticmethod
+    def __get_transaction_id():
+        return uuid.uuid4().int & (1 << 63) - 1
 
 
 class StockBuyTransaction(StockTransaction):

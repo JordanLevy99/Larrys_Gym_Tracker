@@ -151,11 +151,10 @@ class LarrysStockExchange(Database):
         self.cursor.execute("INSERT INTO User (id, name, net_worth, current_balance) VALUES (?, ?, ?, ?)",
                             (user_id, name, balance, balance))
 
-    def insert_transaction(self, transaction: Transaction):
-        transaction_id = uuid.uuid4().int & (1 << 63) - 1
-        user_id, symbol, transaction_type, quantity, price, transaction_date = (
-            transaction.user_id, transaction.symbol, transaction.transaction_type,
-            transaction.quantity, transaction.price, transaction.transaction_date)
+    def insert_transaction(self, t: Transaction):
+        user_id, symbol, transaction_type, quantity, price, transaction_date, transaction_id = (
+            t.user_id, t.symbol, t.transaction_type,
+            t.quantity, t.price, t.transaction_date, t.transaction_id)
         print(f"Inserting transaction {transaction_id} for {user_id}...")
 
         self.cursor.execute(
@@ -218,6 +217,9 @@ class LarrysStockExchange(Database):
         current_quantity, cost_basis = portfolio_data
         transaction_type_modifier = self.transaction_type_modifier[transaction_type]
         new_quantity = current_quantity + (quantity * transaction_type_modifier)
+        if new_quantity == 0:
+            self.cursor.execute("DELETE FROM Portfolio WHERE user_id = ? AND symbol = ?", (user_id, symbol))
+            return
         new_cost_basis = ((cost_basis * current_quantity) + (
                     (price * quantity) * transaction_type_modifier)) / new_quantity
         self.cursor.execute("UPDATE Portfolio SET quantity = ?, cost_basis = ? WHERE user_id = ? AND symbol = ?",

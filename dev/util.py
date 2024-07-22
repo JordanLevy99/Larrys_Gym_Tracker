@@ -7,13 +7,17 @@ from datetime import timedelta
 # # Connect to the database
 # conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
 if __name__ == '__main__':
-    conn = sqlite3.connect('../larrys_stock_exchange.db')
+    conn = sqlite3.connect('../test.db')
     cursor = conn.cursor()
 
-    # Update user balance
-    query = "UPDATE User SET current_balance = 99.45636112963 WHERE name = 'dinkstar'"
-    cursor.execute(query)
-    conn.commit()
+    # # Update user balance
+    # query = "UPDATE User SET current_balance = 99.45636112963 WHERE name = 'dinkstar'"
+    # cursor.execute(query)
+    # conn.commit()
+    # drop daily news table
+    # cursor.execute("DROP TABLE daily_news")
+    # conn.commit()
+
     # # Update the format of dates to include microsecond
     # query = "UPDATE voice_log SET time = CASE WHEN time LIKE '%.%' THEN time ELSE strftime('%Y-%m-%d %H:%M:%S.000000', time) END"
     # cursor.execute(query)
@@ -192,4 +196,4 @@ if __name__ == '__main__':
 
     # Commit the changes and close the connection
     # conn.commit()
-    # conn.close()
+    conn.close()

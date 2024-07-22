@@ -9,6 +9,7 @@ from tabulate import tabulate
 
 from src.extensions.stock_trading.types import Transaction
 from src.types import ROOT_PATH
+from src.util import upload
 
 
 class Dropbox:
@@ -76,6 +77,33 @@ class LarrysDatabase(Database):
 
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS exercise_log
                         (name text, id text, exercise text, time datetime)''')
+
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS daily_news
+                        (message_id text, title text, url text, category text, news_json text, date text)''')
+
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS reactions
+                        (message_id text, emoji text, count integer)''')
+
+    def add_daily_news(self, message_id, title, url, category, news_json, date):
+        self.cursor.execute("INSERT INTO daily_news (message_id, title, url, category, news_json, date) VALUES (?, ?, ?, ?, ?, ?)",
+                            (message_id, title, url, category, news_json, date))
+        self.connection.commit()
+
+    def update_reaction(self, message_id, emoji, increment):
+        self.cursor.execute("SELECT * FROM reactions WHERE message_id = ? AND emoji = ?", (message_id, emoji))
+        reaction = self.cursor.fetchone()
+        if reaction:
+            self.cursor.execute("UPDATE reactions SET count = count + ? WHERE message_id = ? AND emoji = ?",
+                                (increment, message_id, emoji))
+        else:
+            self.cursor.execute("INSERT INTO reactions (message_id, emoji, count) VALUES (?, ?, ?)",
+                                (message_id, emoji, increment))
+        if increment == -1:
+            self.cursor.execute("DELETE FROM reactions WHERE message_id = ? AND count = 0", (message_id,))
+        self.connection.commit()
+
+    def upload(self):
+        upload(self.connection, self.db_file)
 
 
 class LarrysStockExchange(Database):

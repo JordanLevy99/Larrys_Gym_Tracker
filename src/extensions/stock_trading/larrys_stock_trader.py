@@ -17,15 +17,17 @@ class StockAPI(ABC):
 
     def __init__(self, api_key):
         self.api_key = api_key
+        self.client = None
 
     @abstractmethod
     def get_current_price(self, symbol):
         pass
 
 
-class FinnhubAPI:
+class FinnhubAPI(StockAPI):
     def __init__(self, api_key):
-        self.client = finnhub.Client(api_key=api_key)
+        super().__init__(api_key)
+        self.client = finnhub.Client(api_key=self.api_key)
 
     def get_current_price(self, symbol):
         quote = self.client.quote(symbol)

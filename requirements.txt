@@ -11,3 +11,4 @@ openai
 mutagen
 finnhub-python
 yt-dlp
+newsapi-python

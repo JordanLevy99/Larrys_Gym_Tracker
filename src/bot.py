@@ -18,6 +18,7 @@ from src.events import LarrysEvents
 from src.openai import OpenAICog
 from src.exercise import ExerciseCog
 from src.types import BotConstants, WalkArgs, Songs, ROOT_PATH
+from src.util import upload
 
 
 class LarrysBot:
@@ -43,12 +44,13 @@ class LarrysBot:
         print('these are the bot constants:', self.bot_constants.__dict__)
         load_dotenv()
         self.database = LarrysDatabase(self.bot_constants.DB_FILE)
+        self.backend_client = Dropbox()
+        upload(self.backend_client, self.bot_constants.DB_FILE)
         self.stock_exchange_database = LarrysStockExchange(self.bot_constants.STOCK_DB_FILE)
         self.stock_api = FinnhubAPI(os.getenv('FINNHUB_API_KEY'))
         self.walk_constants = WalkArgs()
         self.songs = Songs()
         self.bot_constants.TOKEN = os.getenv('BOT_TOKEN')
-        self.backend_client = Dropbox()
         self.openai_client = OpenAI(
             api_key=os.environ.get("OPENAI_API_KEY"),
         )

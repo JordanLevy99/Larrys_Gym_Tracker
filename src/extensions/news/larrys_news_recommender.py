@@ -46,7 +46,7 @@ class LarrysNewsCogs(commands.Cog):
         now = now.astimezone(pytz.timezone('US/Pacific'))
         target_time = datetime.datetime.replace(now,
                                                 hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=self.bot.walk_constants.WINNER_MINUTE - 2,
+                                                minute=self.bot.walk_constants.WINNER_MINUTE + 2,
                                                 second=0,
                                                 microsecond=0)
         if now > target_time:

@@ -83,6 +83,9 @@ class LarrysNewsCogs(commands.Cog):
     async def on_reaction_add(self, reaction, user):
         # Check if the reaction is for the message you're interested in
         # This is a basic example, you might want to add more checks
+        # check text channel
+        if reaction.message.channel.id != self.bot.bot_constants.TEXT_CHANNEL_ID:
+            return
         if user != self.bot.discord_client.user:  # Ignore the bot's own reactions
             self.bot.database.update_reaction(reaction.message.id, reaction.emoji, 1)
             upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
@@ -92,6 +95,8 @@ class LarrysNewsCogs(commands.Cog):
     async def on_reaction_remove(self, reaction, user):
         # Check if the reaction is for the message you're interested in
         # This is a basic example, you might want to add more checks
+        if reaction.message.channel.id != self.bot.bot_constants.TEXT_CHANNEL_ID:
+            return
         if user != self.bot.discord_client.user:  # Ignore the bot's own reactions
             print(f"{user.name} removed their reaction of {reaction.emoji} on the message {reaction.message.id}")
             self.bot.database.update_reaction(reaction.message.id, reaction.emoji, -1)

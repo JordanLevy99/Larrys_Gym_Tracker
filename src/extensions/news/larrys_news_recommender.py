@@ -6,15 +6,28 @@ from discord.ext import commands, tasks
 from newsapi import NewsApiClient, const
 import os
 
+from src.openai import OpenAICog
+
 from src.util import upload
 
 
 class LarrysNewsRecommender:
 
-    def __init__(self):
+    def __init__(self, bot):
         print('Categories:', const.categories)
 
         self.client = NewsApiClient(api_key=os.getenv('NEWS_API_KEY'))
+        self.openai_client = OpenAICog(bot)
+
+    def get_topic(self, message):
+        self.openai_client.create_chat(self.openai_client.bot.openai_client, message,
+                                       system_message="""You are a news recommender that will provide queries for finding news 
+                articles. Given a list of news articles with headline, category, and number of likes and dislikes
+                mentioned, provide a query that will return the most interesting news articles, something that 
+                should get more likes than dislikes. The query should be concise and to the point, utlitizing the 
+                following  format: 'query={query}' without the single quotes and replacing the query variable name 
+                with the topic""",
+                                       temperature=0.5)
 
     def get_news(self, category='general', topic=None, page_size=5, country='us'):
         # categories = ['business', 'science', 'sports', 'technology']
@@ -32,7 +45,7 @@ class LarrysNewsRecommender:
 class LarrysNewsCogs(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.news_recommender = LarrysNewsRecommender()
+        self.news_recommender = LarrysNewsRecommender(bot)
 
     @tasks.loop(hours=24)
     async def get_daily_news(self):

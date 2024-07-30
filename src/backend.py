@@ -102,6 +102,16 @@ class LarrysDatabase(Database):
             self.cursor.execute("DELETE FROM reactions WHERE message_id = ? AND count = 0", (message_id,))
         self.connection.commit()
 
+    def get_all_news_reactions(self):
+        # select message_id, title, category, emoji, count from daily_news and reactions where message_id in daily_news
+        self.cursor.execute(
+            "SELECT daily_news.message_id, title, category, emoji, count "
+            "FROM daily_news JOIN reactions ON "
+            "daily_news.message_id = reactions.message_id")
+
+
+        return self.cursor.fetchall()
+
     def upload(self):
         upload(self.connection, self.db_file)
 

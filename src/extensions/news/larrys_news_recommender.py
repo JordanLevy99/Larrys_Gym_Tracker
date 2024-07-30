@@ -16,11 +16,14 @@ class LarrysNewsRecommender:
     def __init__(self, bot):
         print('Categories:', const.categories)
 
+        self.bot = bot  # LarrysBot
         self.client = NewsApiClient(api_key=os.getenv('NEWS_API_KEY'))
         self.openai_client = OpenAICog(bot)
 
-    def get_topic(self, message):
-        self.openai_client.create_chat(self.openai_client.bot.openai_client, message,
+    def get_topic(self):
+        message = self.get_previous_news_articles()
+        print(f"Message: {message}")
+        response = self.openai_client.create_chat(self.openai_client.bot.openai_client, message,
                                        system_message="""You are a news recommender that will provide queries for finding news 
                 articles. Given a list of news articles with headline, category, and number of likes and dislikes
                 mentioned, provide a query that will return the most interesting news articles, something that 
@@ -28,18 +31,47 @@ class LarrysNewsRecommender:
                 following  format: 'query={query}' without the single quotes and replacing the query variable name 
                 with the topic""",
                                        temperature=0.5)
+        return response.replace('query=', '')
 
-    def get_news(self, category='general', topic=None, page_size=5, country='us'):
+    def get_news(self, category=None, topic=None, page_size=5, country='us'):
         # categories = ['business', 'science', 'sports', 'technology']
         news = self.client.get_top_headlines(category=category, q=topic,
                                              language='en', page_size=page_size, country=country)
         print(news)
 
         articles = news['articles']
-        news_str = 'Category: ' + category + '\n'
+        if not articles:
+            return 'No articles found', []
+        if category:
+            news_str = 'Category: ' + category + '\n'
+        elif topic:
+            news_str = 'Topic: ' + topic + '\n'
+        else:
+            raise ValueError('Must provide a category or topic')
         for i, article in enumerate(articles):
             news_str += f"Article {i + 1}: {article['title']}\n{article['url']}\n\n"
         return news_str, articles
+
+    def get_previous_news_articles(self):
+        emoji_map = {
+            '👍': 'Likes',
+            '👎': 'Dislikes'
+        }
+        print(self.bot.database.get_all_news_reactions())
+        article_strs = {}
+        for message_id, title, category, emoji, count in self.bot.database.get_all_news_reactions():
+            # message = await ctx.fetch_message(message_id)
+            article_strs[message_id] = article_strs.get(message_id, "")
+                                        # + f"{emoji_map[emoji]}: {count}\n")
+            if not article_strs[message_id]:
+                article_strs[message_id] = f"Title: {title}\nCategory: {category}\n"
+            article_strs[message_id] += f"{emoji_map[emoji]}: {count}\n"
+            # print(f"Title: {title}\nCategory: {category}")
+            # print(f"{emoji_map[emoji]}: {count}")
+        total_article_str = ""
+        for _, article_str in article_strs.items():
+            total_article_str += article_str
+        return total_article_str
 
 
 class LarrysNewsCogs(commands.Cog):
@@ -51,6 +83,34 @@ class LarrysNewsCogs(commands.Cog):
     async def get_daily_news(self):
         text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
         await self.__default_get_news(text_channel)
+
+    @commands.command(name='get_news')
+    async def get_news(self, ctx, *args):
+        topic = self.news_recommender.get_topic()
+        print(f"Topic: {topic}")
+        news_message, _ = self.news_recommender.get_news(topic=topic, page_size=1, country='us')
+        message = await ctx.send(news_message)
+        await self.__add_reactions_to_message(message)
+
+    async def get_previous_news_articles(self):
+        emoji_map = {
+            '👍': 'Likes',
+            '👎': 'Dislikes'
+        }
+        print(self.bot.database.get_all_news_reactions())
+        article_strs = {}
+        for message_id, title, category, emoji, count in self.bot.database.get_all_news_reactions():
+            # message = await ctx.fetch_message(message_id)
+            article_strs[message_id] = article_strs.get(message_id, "")
+                                        # + f"{emoji_map[emoji]}: {count}\n")
+            if not article_strs[message_id]:
+                article_strs[message_id] = f"Title: {title}\nCategory: {category}\n"
+            article_strs[message_id] += f"{emoji_map[emoji]}: {count}\n"
+            # print(f"Title: {title}\nCategory: {category}")
+            # print(f"{emoji_map[emoji]}: {count}")
+        total_article_str = ""
+        for _, article_str in article_strs.items():
+            total_article_str += article_str
 
     @get_daily_news.before_loop
     async def before_get_daily_news(self):

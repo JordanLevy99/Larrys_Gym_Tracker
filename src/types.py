@@ -20,14 +20,14 @@ class BotConstants:
 
 @dataclass
 class WalkArgs:
-    START_HOUR: int = 21
-    END_HOUR: int = 23
+    START_HOUR: int = 7
+    END_HOUR: int = 9
     LENGTH_OF_WALK_IN_MINUTES: int = 45
     MAX_ON_TIME_POINTS: int = 50
     MAX_DURATION_POINTS: int = 50
     WALK_ENDED: bool = False
     WINNER_HOUR: int = START_HOUR
-    WINNER_MINUTE: int = 8
+    WINNER_MINUTE: int = 13
 
 
 @dataclass

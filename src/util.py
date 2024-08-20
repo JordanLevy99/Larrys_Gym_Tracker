@@ -118,7 +118,7 @@ async def determine_winner(db, *args):
                             FROM (
                                 SELECT name, id, time
                                 FROM voice_log
-                                WHERE time >= "{datetime.now().date()}"
+                                WHERE time >= "{datetime.now(tz=pytz.timezone('US/Pacific')).date()}"
                             )  
                             GROUP BY id"""
     print(leaderboard_query)

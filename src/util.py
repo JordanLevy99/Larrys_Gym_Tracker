@@ -135,7 +135,7 @@ async def play_audio(voice_client, file_path: str, backend_client, duration: int
     print(file_path)
     if download:
         backend_client.download_file(file_path)
-    voice_client.play(discord.FFmpegPCMAudio(file_path, options=f'-ss {start_second}'))
+    voice_client.play(discord.FFmpegPCMAudio(file_path, executable='/home/ec2-user/ffmpeg-6.0.1-amd64-static/ffmpeg', options=f'-ss {start_second}'))
     await asyncio.sleep(duration)
     voice_client.stop()
     if disconnect_after_played:

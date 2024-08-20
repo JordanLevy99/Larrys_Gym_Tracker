@@ -3,4 +3,5 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--test', action='store_true', help='Run the bot in test mode')
     parser.add_argument('--verbose', action='store_true', help='Run the bot in verbose mode')
+    parser.add_argument('--local', action='store_true', help='Run the bot in local mode')
     return parser.parse_args()

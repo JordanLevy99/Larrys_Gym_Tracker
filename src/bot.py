@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from cli.args import parse_args
-from src.backend import Dropbox, LarrysDatabase, LarrysStockExchange
+from src.backend import Dropbox, LarrysDatabase, LarrysStockExchange, Local
 from src.commands import LarrysCommands, DebugCommands
 from src.extensions.music_player.youtube import YoutubeMusicPlayer
 # from src.extensions.news.larrys_news_recommender import LarrysNewsCogs
@@ -44,7 +44,7 @@ class LarrysBot:
         print('these are the bot constants:', self.bot_constants.__dict__)
         load_dotenv()
         self.database = LarrysDatabase(self.bot_constants.DB_FILE)
-        self.backend_client = Dropbox()
+        self.backend_client = Local() if self.args.local else Dropbox()
         upload(self.backend_client, self.bot_constants.DB_FILE)
         self.stock_exchange_database = LarrysStockExchange(self.bot_constants.STOCK_DB_FILE)
         self.stock_api = FinnhubAPI(os.getenv('FINNHUB_API_KEY'))

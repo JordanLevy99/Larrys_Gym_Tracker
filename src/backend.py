@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import uuid
+from abc import ABC, abstractmethod
 
 import dropbox
 import pandas as pd
@@ -12,7 +13,30 @@ from src.types import ROOT_PATH
 from src.util import upload
 
 
-class Dropbox:
+class BackendClient(ABC):
+
+    @abstractmethod
+    def download_file(self, file_name):
+        pass
+
+    @abstractmethod
+    def upload_file(self, file_name):
+        pass
+
+
+class Local(BackendClient):
+
+    def __init__(self):
+        self.data_path = ROOT_PATH / 'data'
+
+    def download_file(self, file_name):
+        pass
+
+    def upload_file(self, file_name):
+        pass
+
+
+class Dropbox(BackendClient):
     def __init__(self):
         load_dotenv()
         refresh_token = os.getenv('DROPBOX_REFRESH_TOKEN')

@@ -27,7 +27,7 @@ class WalkArgs:
     MAX_DURATION_POINTS: int = 50
     WALK_ENDED: bool = False
     WINNER_HOUR: int = START_HOUR
-    WINNER_MINUTE: int = 13
+    WINNER_MINUTE: int = 8
 
 
 @dataclass

@@ -1,5 +1,8 @@
 ### Example user template template
 ### Example user template
+*.out
+*.db
+data/
 
 # IntelliJ project files
 .idea

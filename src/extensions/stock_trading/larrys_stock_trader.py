@@ -31,6 +31,7 @@ class FinnhubAPI(StockAPI):
 
     def get_current_price(self, symbol):
         quote = self.client.quote(symbol)
+        print("Quote: ", quote)
         return quote['c']
 
 

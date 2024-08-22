@@ -16,8 +16,11 @@ class OpenAICog(commands.Cog):
     @commands.command()
     async def ask_larry(self, ctx, *args):
         query = ' '.join(args)
-        response = self.create_chat(self.bot.openai_client, query, system_message='Keep your answers concise and to the point.',
-                                    temperature=0.5)
+        response = self.create_chat(self.bot.perplexity_client, query,
+                                    system_message='Keep your answers concise '
+                                                   'and to the point.',
+                                    temperature=0.5,
+                                    model='llama-3.1-sonar-large-128k-online')
 
         remote_speech_file_path = Path('data') / "response.mp3"
         local_speech_file_path = ROOT_PATH / remote_speech_file_path

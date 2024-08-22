@@ -51,6 +51,10 @@ class LarrysBot:
         self.walk_constants = WalkArgs()
         self.songs = Songs()
         self.bot_constants.TOKEN = os.getenv('BOT_TOKEN')
+        self.perplexity_client = OpenAI(
+            api_key=os.environ.get("PERPLEXITY_API_KEY"),
+            base_url="https://api.perplexity.ai"
+        )
         self.openai_client = OpenAI(
             api_key=os.environ.get("OPENAI_API_KEY"),
         )

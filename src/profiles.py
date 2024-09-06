@@ -351,8 +351,10 @@ class ProfileFreethrows(Profile):
         total_made, total_attempted = self.__get_total_freethrows()
         percentage = (total_made / total_attempted * 100) if total_attempted > 0 else 0
 
+        longest_streak, streak_start, streak_end = self.__get_longest_streak()
         freethrows = f"\n\n**Freethrows**" \
                      f"\n\tCurrent Freethrows Streak: **{current_streak}** days" \
+                     f"\n\tLongest Freethrows Streak: **{longest_streak}** days (from **{streak_start}** to **{streak_end}**)" \
                      f"\n\tTotal Freethrows Made: **{total_made}** out of **{total_attempted}**" \
                      f"\n\tTotal Freethrow Percentage: **{percentage:.1f}%**" \
                      f"\n\tPersonal Record: **{self.__get_personal_record()}** freethrows made in a single day on **{self.__get_personal_record_date()}**\n\n"
@@ -369,6 +371,52 @@ class ProfileFreethrows(Profile):
         max_made = self.user_freethrows_df['number_made'].max()
         max_date = self.user_freethrows_df.loc[self.user_freethrows_df['number_made'] == max_made, 'date'].iloc[0]
         return max_date.strftime('%Y-%m-%d')
+    
+    def __get_longest_streak(self):
+        if self.user_freethrows_df.empty:
+            return 0
+
+        self.user_freethrows_df['date'] = pd.to_datetime(self.user_freethrows_df['date']).dt.date
+        self.user_freethrows_df = self.user_freethrows_df.sort_values('date')
+
+        longest_streak = 0
+        current_streak = 1
+        prev_date = None
+
+        for date in self.user_freethrows_df['date']:
+            if prev_date is not None and (date - prev_date).days == 1:
+                current_streak += 1
+            else:
+                longest_streak = max(longest_streak, current_streak)
+                current_streak = 1
+            prev_date = date
+
+        longest_streak = max(longest_streak, current_streak)
+        if longest_streak == 0:
+            return longest_streak, "", ""
+        
+        streak_start = None
+        streak_end = None
+        current_streak = 1
+        prev_date = None
+        
+        for date in self.user_freethrows_df['date']:
+            if prev_date is not None and (date - prev_date).days == 1:
+                current_streak += 1
+                if current_streak == longest_streak:
+                    streak_end = date
+            else:
+                if current_streak == longest_streak:
+                    streak_start = prev_date - timedelta(days=longest_streak - 1)
+                    break
+                current_streak = 1
+            prev_date = date
+        
+        if streak_start is None and current_streak == longest_streak:
+            streak_start = prev_date - timedelta(days=longest_streak - 1)
+            streak_end = prev_date
+        
+        return longest_streak, streak_start, streak_end
 
 
     def __get_current_streak(self):

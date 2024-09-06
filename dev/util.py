@@ -7,7 +7,7 @@ from datetime import timedelta
 # # Connect to the database
 # conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
 if __name__ == '__main__':
-    conn = sqlite3.connect('/Users/jordanlevy/GitHub/Larrys_Gym_Tracker/test.db')
+    conn = sqlite3.connect('larrys_database.db')
     cursor = conn.cursor()
 
     # print all tables

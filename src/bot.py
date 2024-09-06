@@ -29,10 +29,16 @@ class LarrysBot:
 
         if self.args.test or self.args.local:
             print(discord.opus.is_loaded())
-            # discord.opus.load_opus('/usr/local/lib/libopus.so')
+            try:
+                discord.opus.load_opus('/usr/local/lib/libopus.so')
+            except Exception as e:
+                print(f"Failed to load opus: {e}")
+                try:
+                    discord.opus.load_opus('/usr/local/lib/libopus.dylib')
+                except Exception as e:
+                    print(f"Failed to load opus: {e}")
             #discord.opus.load_opus('/home/ec2-user/libopus-0.x86.dll')
             print(discord.opus.is_loaded())
-            #discord.opus.load_opus('/usr/local/lib/libopus.dylib')
 
         intents = self._get_intents()
         self.discord_client = commands.Bot(command_prefix='!', intents=intents)

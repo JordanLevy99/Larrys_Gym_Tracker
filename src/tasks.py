@@ -159,7 +159,7 @@ class LarrysTasks(commands.Cog):
                 date = (date - timedelta(days=1)).replace(microsecond=0)
             else:
                 try:
-                    date = datetime.datetime.strptime(date_str, '%d/%m/%Y %H:%M:%S.%f').replace(tzinfo=pytz.timezone('US/Pacific'))
+                    date = datetime.datetime.strptime(date_str, '%m/%d/%Y').replace(tzinfo=pytz.timezone('US/Pacific')).replace(microsecond=0)
                 except ValueError:
                     print(f"Invalid date format: {date_str}")
                     await message.add_reaction('❌')

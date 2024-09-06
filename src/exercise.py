@@ -269,7 +269,7 @@ class ExerciseCog(commands.Cog):
                 date = (date - timedelta(days=1)).replace(microsecond=0)
             else:
                 try:
-                    date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                    date = datetime.strptime(date_str, '%m/%d/%Y').date().replace(microsecond=0)
                 except ValueError:
                     await message.add_reaction('❌')
                     await message.channel.send(f"Invalid date format. Use DD/MM/YYYY or 'yesterday'.")

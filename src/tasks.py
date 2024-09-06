@@ -1,5 +1,6 @@
 import asyncio
 import random
+import re
 import time
 from datetime import timedelta
 import datetime
@@ -132,3 +133,58 @@ class LarrysTasks(commands.Cog):
         print('Monthly winner determined at', target_time)
         print(f'wait time for monthly winner check: {(target_time - now).total_seconds()}')
         await asyncio.sleep((target_time - now).total_seconds())
+
+    @tasks.loop(seconds=30)  # Adjust the interval as needed
+    async def check_freethrow_logs(self):
+        channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
+        if not channel:
+            return
+
+        async for message in channel.history(limit=1000):  # Adjust the limit as needed
+            if message.content.startswith('!log_freethrow'):
+                await self.process_freethrow_log(message)
+
+    async def process_freethrow_log(self, message):
+        pattern = r'!log_freethrow(?:\s+(\S+))?\s+(\d+)(?:\s+(\d+))?'
+        match = re.match(pattern, message.content)
+        
+        if match:
+            date_str, number_made, number_attempted = match.groups()
+            
+            # Parse date
+            if date_str is None:
+                date = message.created_at.astimezone(pytz.timezone('US/Pacific'))
+            elif date_str.lower() == 'yesterday':
+                date = (datetime.now(pytz.timezone('US/Pacific')) - timedelta(days=1)).date()
+            else:
+                try:
+                    date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                except ValueError:
+                    await message.add_reaction('❌')
+                    return
+
+            number_made = int(number_made)
+            number_attempted = int(number_attempted) if number_attempted else 25  # Default to 10 if not provided
+            
+            # Check if the freethrow has already been logged
+            if self.bot.database.freethrow_exists(
+                name=message.author.name,
+                id=str(message.author.id),
+                date=date.strftime('%Y-%m-%d')
+            ):
+                await message.add_reaction('⚠️')  # React to indicate duplicate entry
+                await message.channel.send(f"{message.author.mention}, you've already logged a freethrow for this date.")
+                return
+            
+            self.bot.database.log_free_throw(
+                message_id=str(message.id),
+                name=message.author.name,
+                id=str(message.author.id),
+                date=date.strftime('%Y-%m-%d %H:%M:%S'),
+                number_made=number_made,
+                number_attempted=number_attempted
+            )
+            
+            await message.add_reaction('✅')  # React to confirm logging
+        else:
+            await message.add_reaction('❌')  # React to indicate an error

@@ -354,8 +354,22 @@ class ProfileFreethrows(Profile):
         freethrows = f"\n\n**Freethrows**" \
                      f"\n\tCurrent Freethrows Streak: **{current_streak}** days" \
                      f"\n\tTotal Freethrows Made: **{total_made}** out of **{total_attempted}**" \
-                     f"\n\tTotal Freethrow Percentage: **{percentage:.1f}%**\n\n"
+                     f"\n\tTotal Freethrow Percentage: **{percentage:.1f}%**" \
+                     f"\n\tPersonal Record: **{self.__get_personal_record()}** freethrows made in a single day on **{self.__get_personal_record_date()}**\n\n"
         return freethrows
+    
+    def __get_personal_record(self):
+        if self.user_freethrows_df.empty:
+            return 0
+        return self.user_freethrows_df['number_made'].max()
+    
+    def __get_personal_record_date(self):
+        if self.user_freethrows_df.empty:
+            return ""
+        max_made = self.user_freethrows_df['number_made'].max()
+        max_date = self.user_freethrows_df.loc[self.user_freethrows_df['number_made'] == max_made, 'date'].iloc[0]
+        return max_date.strftime('%Y-%m-%d')
+
 
     def __get_current_streak(self):
         if self.user_freethrows_df.empty:

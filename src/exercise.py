@@ -1,6 +1,8 @@
 import asyncio
 import datetime
 from pathlib import Path
+import re
+from datetime import timedelta
 
 import discord
 import numpy as np
@@ -218,40 +220,6 @@ class ExerciseCog(commands.Cog):
             print(e)
             ctx.send('There was an error logging your exercise. Contact @dinkster for help.')
 
-    # async def log_free_throw(self, ctx):
-    #     if self.__free_throw_is_already_logged(ctx):
-    #         await ctx.send('You already logged your exercise for today.')
-    #         return
-    #     date, number_made, number_attempted = self.__parse_free_throw(ctx)
-    #     self.bot.database.log_free_throw(ctx.message.id, ctx.author.name, ctx.author.id, date, number_made,
-    #                                      number_attempted)
-    #     await ctx.send(f'{ctx.author.name} has logged {number_made} free throws made for {date}')
-
-    # def __free_throw_is_already_logged(self, ctx):
-    #     current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
-    #     current_date = current_time.date()
-    #     return self.bot.database.cursor.execute(f"SELECT  name, id, date FROM "
-    #                                             f"(SELECT name, id, DATE(time) as date "
-    #                                             f"FROM freethrows)"
-    #                                             f"WHERE date = "
-    #                                             f"'{current_date}' AND id = {ctx.author.id}").fetchone()
-
-    # def __parse_free_throw(self, ctx):
-    #     # free throw message: date? number_made, number_attempted?
-    #     date = datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date()
-    #     number_made = None
-    #     number_attempted = 25 # default number of free throws attempted
-    #     parameters = ctx.message.content.split()
-    #     if len(parameters) == 1:  # case where only number of free throws made is given
-    #         number_made = int(parameters[0])
-    #     elif len(parameters) == 2:  # case where number of free throws made and attempted are given
-    #         try:
-    #             number_made = int(parameters[0])
-    #             number_attempted = int(parameters[1])
-    #         except ValueError:
-    #             return 'Invalid input. Please enter the number of free throws made and attempted.'
-    #     return date, number_made, number_attempted
-    
     def __update_points(self, ctx, current_date, exercise_points):
         self.bot.database.cursor.execute(f"""INSERT INTO points (name, id, points_awarded, day, type)
                                                     VALUES (?, ?, ?, ?, ?)""",
@@ -277,3 +245,61 @@ class ExerciseCog(commands.Cog):
                                                 f"FROM exercise_log)"
                                                 f"WHERE date = "
                                                 f"'{current_date}' AND id = {ctx.author.id}").fetchone()
+
+    @commands.command()
+    async def log_freethrows(self, ctx, *args):
+        """Log freethrows in the database. Usage: !log_freethrows [date] <made> [attempted]"""
+        message_content = f"!log_freethrows {' '.join(args)}"
+        message = ctx.message
+        message.content = message_content  # Temporarily modify the message content
+        await self.process_freethrow_log(message)
+
+    async def process_freethrow_log(self, message):
+        pattern = r'!log_freethrows(?:\s+(\S+))?\s+(\d+)(?:\s+(\d+))?'
+        match = re.match(pattern, message.content)
+        
+        if match:
+            date_str, number_made, number_attempted = match.groups()
+            
+            # Parse date
+            if date_str is None:
+                date = message.created_at.astimezone(pytz.timezone('US/Pacific'))
+            elif date_str.lower() == 'yesterday':
+                date = message.created_at.astimezone(pytz.timezone('US/Pacific'))
+                date = (date - timedelta(days=1)).replace(microsecond=0)
+            else:
+                try:
+                    date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                except ValueError:
+                    await message.add_reaction('❌')
+                    await message.channel.send(f"Invalid date format. Use DD/MM/YYYY or 'yesterday'.")
+                    return
+
+            number_made = int(number_made)
+            number_attempted = int(number_attempted) if number_attempted else 25  # Default to 25 if not provided
+            
+            # Check if the freethrow has already been logged
+            if self.bot.database.freethrow_exists(
+                name=message.author.name,
+                id=str(message.author.id),
+                date=date.strftime('%Y-%m-%d')
+            ):
+                await message.add_reaction('⚠️')  # React to indicate duplicate entry
+                await message.channel.send(f"{message.author.mention}, you've already logged a freethrow for this date.")
+                return
+            
+            self.bot.database.log_free_throw(
+                message_id=str(message.id),
+                name=message.author.name,
+                id=str(message.author.id),
+                date=date.strftime('%Y-%m-%d %H:%M:%S'),
+                number_made=number_made,
+                number_attempted=number_attempted
+            )
+            
+            await message.add_reaction('✅')  # React to confirm logging
+            await message.channel.send(f"{message.author.mention} has logged {number_made}/{number_attempted} freethrows for {date.strftime('%Y-%m-%d')}.")
+            self.bot.database.upload()
+        else:
+            await message.add_reaction('❌')  # React to indicate an error
+            await message.channel.send("Invalid format. Usage: !log_freethrows [date] <made> [attempted]")

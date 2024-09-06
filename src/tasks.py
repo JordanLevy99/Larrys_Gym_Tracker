@@ -155,7 +155,8 @@ class LarrysTasks(commands.Cog):
             if date_str is None:
                 date = message.created_at.astimezone(pytz.timezone('US/Pacific'))
             elif date_str.lower() == 'yesterday':
-                date = (datetime.now(pytz.timezone('US/Pacific')) - timedelta(days=1)).replace(microsecond=0)
+                date = message.created_at.astimezone(pytz.timezone('US/Pacific'))
+                date = (date - timedelta(days=1)).replace(microsecond=0)
             else:
                 try:
                     date = datetime.strptime(date_str, '%d/%m/%Y %H:%M:%S.%f').replace(tzinfo=pytz.timezone('US/Pacific'))

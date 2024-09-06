@@ -155,10 +155,10 @@ class LarrysTasks(commands.Cog):
             if date_str is None:
                 date = message.created_at.astimezone(pytz.timezone('US/Pacific'))
             elif date_str.lower() == 'yesterday':
-                date = (datetime.now(pytz.timezone('US/Pacific')) - timedelta(days=1)).date()
+                date = (datetime.now(pytz.timezone('US/Pacific')) - timedelta(days=1)).replace(microsecond=0)
             else:
                 try:
-                    date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                    date = datetime.strptime(date_str, '%d/%m/%Y %H:%M:%S.%f').replace(tzinfo=pytz.timezone('US/Pacific'))
                 except ValueError:
                     await message.add_reaction('❌')
                     return
@@ -170,10 +170,11 @@ class LarrysTasks(commands.Cog):
             if self.bot.database.freethrow_exists(
                 name=message.author.name,
                 id=str(message.author.id),
-                date=date.strftime('%Y-%m-%d')
+                date=date.strftime('%Y-%m-%d %H:%M:%S')
             ):
-                await message.add_reaction('⚠️')  # React to indicate duplicate entry
-                await message.channel.send(f"{message.author.mention}, you've already logged a freethrow for this date.")
+                print(f"Freethrow already logged for {message.author.name} on {date.strftime('%Y-%m-%d')}")
+                # await message.add_reaction('⚠️')  # React to indicate duplicate entry
+                # await message.channel.send(f"{message.author.mention}, you've already logged a freethrow for this date.")
                 return
 
             self.bot.database.log_free_throw(

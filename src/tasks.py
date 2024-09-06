@@ -140,17 +140,17 @@ class LarrysTasks(commands.Cog):
         if not channel:
             return
 
-        async for message in channel.history(limit=1000):  # Adjust the limit as needed
+        async for message in channel.history(limit=200):  # Adjust the limit as needed
             if message.content.startswith('!log_freethrow'):
                 await self.process_freethrow_log(message)
 
     async def process_freethrow_log(self, message):
         pattern = r'!log_freethrow(?:\s+(\S+))?\s+(\d+)(?:\s+(\d+))?'
         match = re.match(pattern, message.content)
-        
+
         if match:
             date_str, number_made, number_attempted = match.groups()
-            
+
             # Parse date
             if date_str is None:
                 date = message.created_at.astimezone(pytz.timezone('US/Pacific'))
@@ -165,7 +165,7 @@ class LarrysTasks(commands.Cog):
 
             number_made = int(number_made)
             number_attempted = int(number_attempted) if number_attempted else 25  # Default to 10 if not provided
-            
+
             # Check if the freethrow has already been logged
             if self.bot.database.freethrow_exists(
                 name=message.author.name,
@@ -175,7 +175,7 @@ class LarrysTasks(commands.Cog):
                 await message.add_reaction('⚠️')  # React to indicate duplicate entry
                 await message.channel.send(f"{message.author.mention}, you've already logged a freethrow for this date.")
                 return
-            
+
             self.bot.database.log_free_throw(
                 message_id=str(message.id),
                 name=message.author.name,
@@ -184,7 +184,13 @@ class LarrysTasks(commands.Cog):
                 number_made=number_made,
                 number_attempted=number_attempted
             )
-            
+            # Remove the ❌ reaction if it exists
+            try:
+                await message.remove_reaction('❌', self.bot.discord_client.user)
+            except discord.errors.HTTPException:
+                pass  # Ignore if the reaction doesn't exist or can't be removed
+
             await message.add_reaction('✅')  # React to confirm logging
+            print(f"Freethrow logged for {message.author.name} on {date.strftime('%Y-%m-%d')} with {number_made} made and {number_attempted} attempted.")
         else:
             await message.add_reaction('❌')  # React to indicate an error

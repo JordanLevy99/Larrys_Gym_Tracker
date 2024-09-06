@@ -141,11 +141,11 @@ class LarrysTasks(commands.Cog):
             return
 
         async for message in channel.history(limit=200):  # Adjust the limit as needed
-            if message.content.startswith('!log_freethrow'):
+            if message.content.startswith('!log_freethrows'):
                 await self.process_freethrow_log(message)
 
     async def process_freethrow_log(self, message):
-        pattern = r'!log_freethrow(?:\s+(\S+))?\s+(\d+)(?:\s+(\d+))?'
+        pattern = r'!log_freethrows(?:\s+(\S+))?\s+(\d+)(?:\s+(\d+))?'
         match = re.match(pattern, message.content)
 
         if match:
@@ -159,7 +159,7 @@ class LarrysTasks(commands.Cog):
                 date = (date - timedelta(days=1)).replace(microsecond=0)
             else:
                 try:
-                    date = datetime.strptime(date_str, '%d/%m/%Y %H:%M:%S.%f').replace(tzinfo=pytz.timezone('US/Pacific'))
+                    date = datetime.datetime.strptime(date_str, '%d/%m/%Y %H:%M:%S.%f').replace(tzinfo=pytz.timezone('US/Pacific'))
                 except ValueError:
                     print(f"Invalid date format: {date_str}")
                     await message.add_reaction('❌')

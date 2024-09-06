@@ -134,13 +134,13 @@ class LarrysTasks(commands.Cog):
         print(f'wait time for monthly winner check: {(target_time - now).total_seconds()}')
         await asyncio.sleep((target_time - now).total_seconds())
 
-    @tasks.loop(seconds=30)  # Adjust the interval as needed
+    @tasks.loop(hours=1)  # Adjust the interval as needed
     async def check_freethrow_logs(self):
         channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
         if not channel:
             return
 
-        async for message in channel.history(limit=200):  # Adjust the limit as needed
+        async for message in channel.history(limit=100):  # Adjust the limit as needed
             if message.content.startswith('!log_freethrows'):
                 await self.process_freethrow_log(message)
 

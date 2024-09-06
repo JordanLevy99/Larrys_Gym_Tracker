@@ -354,7 +354,7 @@ class ProfileFreethrows(Profile):
         freethrows = f"\n\n**Freethrows**" \
                      f"\n\tCurrent Freethrows Streak: **{current_streak}** days" \
                      f"\n\tTotal Freethrows Made: **{total_made}** out of **{total_attempted}**" \
-                     f"\n\tTotal Freethrow Percentage: **{percentage:.1f}%**"
+                     f"\n\tTotal Freethrow Percentage: **{percentage:.1f}%**\n\n"
         return freethrows
 
     def __get_current_streak(self):

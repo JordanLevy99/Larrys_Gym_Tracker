@@ -218,39 +218,40 @@ class ExerciseCog(commands.Cog):
             print(e)
             ctx.send('There was an error logging your exercise. Contact @dinkster for help.')
 
-    async def log_free_throw(self, ctx):
-        if self.__free_throw_is_already_logged(ctx):
-            await ctx.send('You already logged your exercise for today.')
-            return
-        date, number_made, number_attempted = self.__parse_free_throw(ctx)
-        self.bot.database.log_free_throw(ctx.message.id, ctx.author.name, ctx.author.id, date, number_made,
-                                         number_attempted)
-        await ctx.send(f'{ctx.author.name} has logged {number_made} free throws made for {date}')
+    # async def log_free_throw(self, ctx):
+    #     if self.__free_throw_is_already_logged(ctx):
+    #         await ctx.send('You already logged your exercise for today.')
+    #         return
+    #     date, number_made, number_attempted = self.__parse_free_throw(ctx)
+    #     self.bot.database.log_free_throw(ctx.message.id, ctx.author.name, ctx.author.id, date, number_made,
+    #                                      number_attempted)
+    #     await ctx.send(f'{ctx.author.name} has logged {number_made} free throws made for {date}')
 
-    def __free_throw_is_already_logged(self, ctx):
-        current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
-        current_date = current_time.date()
-        return self.bot.database.cursor.execute(f"SELECT  name, id, date FROM "
-                                                f"(SELECT name, id, DATE(time) as date "
-                                                f"FROM freethrows)"
-                                                f"WHERE date = "
-                                                f"'{current_date}' AND id = {ctx.author.id}").fetchone()
+    # def __free_throw_is_already_logged(self, ctx):
+    #     current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
+    #     current_date = current_time.date()
+    #     return self.bot.database.cursor.execute(f"SELECT  name, id, date FROM "
+    #                                             f"(SELECT name, id, DATE(time) as date "
+    #                                             f"FROM freethrows)"
+    #                                             f"WHERE date = "
+    #                                             f"'{current_date}' AND id = {ctx.author.id}").fetchone()
 
-    def __parse_free_throw(self, ctx):
-        # free throw message: date? number_made, number_attempted?
-        date = datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date()
-        number_made = None
-        number_attempted = 25 # default number of free throws attempted
-        parameters = ctx.message.content.split()
-        if len(parameters) == 1:  # case where only number of free throws made is given
-            number_made = int(parameters[0])
-        elif len(parameters) == 2:  # case where number of free throws made and attempted are given
-            try:
-                number_made = int(parameters[0])
-                number_attempted = int(parameters[1])
-            except ValueError:
-                return 'Invalid input. Please enter the number of free throws made and attempted.'
-        return date, number_made, number_attempted
+    # def __parse_free_throw(self, ctx):
+    #     # free throw message: date? number_made, number_attempted?
+    #     date = datetime.datetime.now(tz=pytz.timezone('US/Pacific')).date()
+    #     number_made = None
+    #     number_attempted = 25 # default number of free throws attempted
+    #     parameters = ctx.message.content.split()
+    #     if len(parameters) == 1:  # case where only number of free throws made is given
+    #         number_made = int(parameters[0])
+    #     elif len(parameters) == 2:  # case where number of free throws made and attempted are given
+    #         try:
+    #             number_made = int(parameters[0])
+    #             number_attempted = int(parameters[1])
+    #         except ValueError:
+    #             return 'Invalid input. Please enter the number of free throws made and attempted.'
+    #     return date, number_made, number_attempted
+    
     def __update_points(self, ctx, current_date, exercise_points):
         self.bot.database.cursor.execute(f"""INSERT INTO points (name, id, points_awarded, day, type)
                                                     VALUES (?, ?, ?, ?, ?)""",

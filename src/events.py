@@ -14,6 +14,7 @@ class LarrysEvents(commands.Cog):
         print(f'We have logged in as {self.bot.discord_client.user}')
         self.bot.discord_client.cogs['LarrysTasks'].determine_daily_winner.start()
         self.bot.discord_client.cogs['LarrysTasks'].determine_monthly_winner.start()
+        self.bot.discord_client.cogs['LarrysTasks'].check_freethrow_logs.start()
         self.bot.discord_client.cogs['ExerciseCog'].exercise_of_the_day.start()
         # self.bot.discord_client.cogs['LarrysNewsCogs'].get_daily_news.start()
         download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)

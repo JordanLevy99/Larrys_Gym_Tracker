@@ -11,7 +11,7 @@ from discord.utils import get
 
 class ProfileCommands(commands.Cog):
 
-    sections = ['days', 'streaks', 'wins', 'times', 'points']
+    sections = ['days', 'streaks', 'wins', 'times', 'points', 'freethrows']
     def __init__(self, bot):
         self.bot = bot
         self.__walkers = None
@@ -36,12 +36,14 @@ class ProfileCommands(commands.Cog):
         user_joins_df = self.__get_user_joins_df(member.name)
         user_exercise_df = self.__get_user_exercise_df(member.name)
         user_points_df = self.__get_user_points_df(member.name)
+        user_freethrows_df = self.__get_user_freethrows_df(member.name)
         profile_data = {
             'days': (user_joins_df, self.__total_number_of_days),
             'streaks': (user_joins_df, user_exercise_df, winner_df.query(f'name == "{member.name}"')),
             'wins': (winner_df, len(user_joins_df), member, self.__total_number_of_days),
             'times': (user_joins_df,),
-            'points': (user_points_df,)
+            'points': (user_points_df,),
+            'freethrows': (user_freethrows_df, member.name)
         }
         profile = ''
         print(self.__sections)
@@ -153,6 +155,14 @@ class ProfileCommands(commands.Cog):
         min_time_joined = user_joins_df.loc[user_joins_df['time'].idxmin(), ['name', 'day', 'time']]
         earliest_time_joined = f'Earliest time joined: **{min_time_joined["time"]}** on **{min_time_joined["day"]}**'
         return earliest_time_joined
+
+    def __get_user_freethrows_df(self, name):
+        return pd.read_sql_query(f"""
+            SELECT date, number_made, number_attempted
+            FROM freethrows
+            WHERE name = '{name}'
+            ORDER BY date DESC
+        """, self.bot.database.connection)
 
 
 class Profile(ABC):
@@ -330,13 +340,55 @@ class ProfilePoints(Profile):
             self.__points += f"\n\t\t\t{row[1]['weekday']}: **{row[1]['total_points']:.2f}**"
 
 
+class ProfileFreethrows(Profile):
+    def __init__(self, data):
+        super().__init__(data)
+        self.user_freethrows_df = data[0]
+        self.name = data[1]
+
+    def generate(self):
+        current_streak = self.__get_current_streak()
+        total_made, total_attempted = self.__get_total_freethrows()
+        percentage = (total_made / total_attempted * 100) if total_attempted > 0 else 0
+
+        freethrows = f"\n\n**Freethrows**" \
+                     f"\n\tCurrent Freethrows Streak: **{current_streak}** days" \
+                     f"\n\tTotal Freethrows Made: **{total_made}** out of **{total_attempted}**" \
+                     f"\n\tTotal Freethrow Percentage: **{percentage:.1f}%**"
+        return freethrows
+
+    def __get_current_streak(self):
+        if self.user_freethrows_df.empty:
+            return 0
+
+        today = datetime.now(pytz.timezone('US/Pacific')).date()
+        self.user_freethrows_df['date'] = pd.to_datetime(self.user_freethrows_df['date']).dt.date
+        self.user_freethrows_df = self.user_freethrows_df.sort_values('date', ascending=False)
+
+        streak = 0
+        for i, row in self.user_freethrows_df.iterrows():
+            if row['date'] == today - timedelta(days=streak):
+                streak += 1
+            else:
+                break
+        return streak
+
+    def __get_total_freethrows(self):
+        if self.user_freethrows_df.empty:
+            return 0, 0
+        total_made = self.user_freethrows_df['number_made'].sum()
+        total_attempted = self.user_freethrows_df['number_attempted'].sum()
+        return total_made, total_attempted
+
+
 class ProfileFactory:
     profile_segments = {
         'days': ProfileDays,
         'streaks': ProfileStreaks,
         'wins': ProfileWins,
         'times': ProfileTimes,
-        'points': ProfilePoints
+        'points': ProfilePoints,
+        'freethrows': ProfileFreethrows
     }
 
     def create(self, name, data):

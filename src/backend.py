@@ -108,6 +108,10 @@ class LarrysDatabase(Database):
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS reactions
                         (message_id text, emoji text, count integer)''')
 
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS freethrows
+                        (message_id text, name text, id text, date datetime, number_made integer, number_attempted 
+                        integer)''')
+
     def add_daily_news(self, message_id, title, url, category, news_json, date):
         self.cursor.execute("INSERT INTO daily_news (message_id, title, url, category, news_json, date) VALUES (?, ?, ?, ?, ?, ?)",
                             (message_id, title, url, category, news_json, date))
@@ -126,8 +130,22 @@ class LarrysDatabase(Database):
             self.cursor.execute("DELETE FROM reactions WHERE message_id = ? AND count = 0", (message_id,))
         self.connection.commit()
 
+    def log_free_throw(self, message_id, name, id, date, number_made, number_attempted):
+        self.cursor.execute("INSERT INTO freethrows (message_id, name, id, date, number_made, number_attempted) "
+                            "VALUES (?, ?, ?, ?, ?, ?)",
+                            (message_id, name, id, date, number_made, number_attempted))
+        self.connection.commit()
+
     def upload(self):
         upload(self.connection, self.db_file)
+
+    def freethrow_exists(self, name, id, date):
+        self.cursor.execute("""
+            SELECT COUNT(*) FROM freethrows 
+            WHERE name = ? AND id = ? AND date = ?
+        """, (name, id, date))
+        count = self.cursor.fetchone()[0]
+        return count > 0
 
 
 class LarrysStockExchange(Database):

@@ -7,8 +7,15 @@ from datetime import timedelta
 # # Connect to the database
 # conn = sqlite3.connect('C:\\Users\\jdlevy\\Downloads\\larrys_database_updated.db')
 if __name__ == '__main__':
-    conn = sqlite3.connect('../test.db')
+    conn = sqlite3.connect('/Users/jordanlevy/GitHub/Larrys_Gym_Tracker/test.db')
     cursor = conn.cursor()
+
+    # print all tables
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    print(cursor.fetchall())
+
+    # delete freethrow table
+    cursor.execute("DROP TABLE freethrows")
 
     # # Update user balance
     # query = "UPDATE User SET current_balance = 99.45636112963 WHERE name = 'dinkstar'"

@@ -29,7 +29,7 @@ class LarrysBot:
 
         if self.args.test or self.args.local:
             print(discord.opus.is_loaded())
-            discord.opus.load_opus('/usr/local/lib/libopus.so')
+            # discord.opus.load_opus('/usr/local/lib/libopus.so')
             #discord.opus.load_opus('/home/ec2-user/libopus-0.x86.dll')
             print(discord.opus.is_loaded())
             #discord.opus.load_opus('/usr/local/lib/libopus.dylib')

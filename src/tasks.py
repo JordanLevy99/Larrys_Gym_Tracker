@@ -160,6 +160,7 @@ class LarrysTasks(commands.Cog):
                 try:
                     date = datetime.strptime(date_str, '%d/%m/%Y %H:%M:%S.%f').replace(tzinfo=pytz.timezone('US/Pacific'))
                 except ValueError:
+                    print(f"Invalid date format: {date_str}")
                     await message.add_reaction('❌')
                     return
 

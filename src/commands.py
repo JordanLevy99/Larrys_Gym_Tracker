@@ -125,6 +125,8 @@ class LarrysCommands(commands.Cog):
         query = ' '.join(args)
         points_column, time_filter, type_filter = _process_query(query)
         points_column = f'{points_column}' if points_column else 'total'
+        if points_column == 'sleep':
+            points_column = 'sleep'
         leaderboard_query = self.__get_leaderboard_query(points_column, type_filter, time_filter)
         print(leaderboard_query)
         print('database connection', self.bot.database.connection)
@@ -146,16 +148,37 @@ class LarrysCommands(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @staticmethod
-    def __get_leaderboard_query(points_column, type_filter, time_filter):
-        return f"""SELECT name, SUM(points_awarded) as '{points_column}', COUNT(DISTINCT day) as 'days'
-                    FROM (
-                        SELECT name, id, points_awarded, day, type
-                        FROM points
-                        {type_filter}
-                    )  
-                    {time_filter}
-                    GROUP BY id"""
+    def __get_leaderboard_query(self, points_column, type_filter, time_filter):
+        sleep_points_subquery = f"""
+            SELECT user_id as id, SUM(points) as sleep_points
+            FROM sleep_points
+            GROUP BY user_id
+        """
+        
+        main_query = f"""
+            SELECT p.name, 
+                   SUM(p.points_awarded) + COALESCE(sp.sleep_points, 0) as '{points_column}', 
+                   COUNT(DISTINCT p.day) as 'days'
+            FROM (
+                SELECT name, id, points_awarded, day, type
+                FROM points
+                {type_filter}
+            ) p
+            {time_filter}
+            GROUP BY p.id
+        """
+            # LEFT JOIN ({sleep_points_subquery}) sp ON p.id = sp.id
+
+        
+        if points_column == 'sleep':
+            main_query = f"""
+                SELECT name, SUM(points) as '{points_column}', COUNT(DISTINCT date) as 'days'
+                FROM sleep_points
+                {time_filter}
+                GROUP BY user_id
+            """
+        
+        return main_query
 
     def __get_zeroed_leaderboard(self, points_column):
         leaderboard_series = pd.Series(dict(zip([member.name for member in self.__walkers.members],

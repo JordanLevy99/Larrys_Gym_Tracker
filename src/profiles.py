@@ -11,7 +11,7 @@ from discord.utils import get
 
 class ProfileCommands(commands.Cog):
 
-    sections = ['days', 'streaks', 'wins', 'times', 'points', 'freethrows']
+    sections = ['days', 'streaks', 'wins', 'times', 'points', 'freethrows', 'sleep']
     def __init__(self, bot):
         self.bot = bot
         self.__walkers = None
@@ -37,13 +37,15 @@ class ProfileCommands(commands.Cog):
         user_exercise_df = self.__get_user_exercise_df(member.name)
         user_points_df = self.__get_user_points_df(member.name)
         user_freethrows_df = self.__get_user_freethrows_df(member.name)
+        user_sleep_df = self.__get_user_sleep_df(member.name)
         profile_data = {
             'days': (user_joins_df, self.__total_number_of_days),
             'streaks': (user_joins_df, user_exercise_df, winner_df.query(f'name == "{member.name}"')),
             'wins': (winner_df, len(user_joins_df), member, self.__total_number_of_days),
             'times': (user_joins_df,),
             'points': (user_points_df,),
-            'freethrows': (user_freethrows_df, member.name)
+            'freethrows': (user_freethrows_df, member.name),
+            'sleep': (user_sleep_df, member.name)
         }
         profile = ''
         print(self.__sections)
@@ -160,6 +162,14 @@ class ProfileCommands(commands.Cog):
         return pd.read_sql_query(f"""
             SELECT date, number_made, number_attempted
             FROM freethrows
+            WHERE name = '{name}'
+            ORDER BY date DESC
+        """, self.bot.database.connection)
+
+    def __get_user_sleep_df(self, name):
+        return pd.read_sql_query(f"""
+            SELECT date, hours_slept
+            FROM sleep_log
             WHERE name = '{name}'
             ORDER BY date DESC
         """, self.bot.database.connection)
@@ -442,6 +452,34 @@ class ProfileFreethrows(Profile):
         total_attempted = self.user_freethrows_df['number_attempted'].sum()
         return total_made, total_attempted
 
+class ProfileSleep(Profile):
+    def __init__(self, data):
+        super().__init__(data)
+        self.user_sleep_df = data[0]
+        self.name = data[1]
+
+    def generate(self):
+        avg_sleep = self.__get_average_sleep()
+        avg_sleep_week = self.__get_average_sleep(days=7)
+        avg_sleep_month = self.__get_average_sleep(days=30)
+
+        sleep_info = f"\n\n**Sleep**" \
+                     f"\n\tAverage Sleep Duration: **{avg_sleep:.2f}** hours" \
+                     f"\n\tAverage Sleep Duration (past week): **{avg_sleep_week:.2f}** hours" \
+                     f"\n\tAverage Sleep Duration (past month): **{avg_sleep_month:.2f}** hours"
+        return sleep_info
+
+    def __get_average_sleep(self, days=None):
+        if self.user_sleep_df.empty:
+            return 0
+
+        if days:
+            cutoff_date = datetime.now(pytz.timezone('US/Pacific')) - timedelta(days=days)
+            filtered_df = self.user_sleep_df[self.user_sleep_df['date'] > cutoff_date]
+        else:
+            filtered_df = self.user_sleep_df
+
+        return filtered_df['hours_slept'].mean() if not filtered_df.empty else 0
 
 class ProfileFactory:
     profile_segments = {
@@ -450,7 +488,8 @@ class ProfileFactory:
         'wins': ProfileWins,
         'times': ProfileTimes,
         'points': ProfilePoints,
-        'freethrows': ProfileFreethrows
+        'freethrows': ProfileFreethrows,
+        'sleep': ProfileSleep
     }
 
     def create(self, name, data):

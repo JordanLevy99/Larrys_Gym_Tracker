@@ -457,6 +457,7 @@ class ProfileSleep(Profile):
         super().__init__(data)
         self.user_sleep_df = data[0]
         self.name = data[1]
+        self.user_sleep_df['date'] = pd.to_datetime(self.user_sleep_df['date'])
 
     def generate(self):
         avg_sleep = self.__get_average_sleep()

@@ -452,12 +452,14 @@ class ProfileFreethrows(Profile):
         total_attempted = self.user_freethrows_df['number_attempted'].sum()
         return total_made, total_attempted
 
+
 class ProfileSleep(Profile):
     def __init__(self, data):
         super().__init__(data)
         self.user_sleep_df = data[0]
         self.name = data[1]
-        self.user_sleep_df['date'] = pd.to_datetime(self.user_sleep_df['date'])
+        # Convert 'date' column to datetime64[ns] with timezone info
+        self.user_sleep_df['date'] = pd.to_datetime(self.user_sleep_df['date'], utc=True).dt.tz_convert('US/Pacific')
 
     def generate(self):
         avg_sleep = self.__get_average_sleep()
@@ -475,7 +477,7 @@ class ProfileSleep(Profile):
             return 0
 
         if days:
-            cutoff_date = datetime.now(pytz.timezone('US/Pacific')) - timedelta(days=days)
+            cutoff_date = pd.Timestamp.now(tz='US/Pacific') - pd.Timedelta(days=days)
             filtered_df = self.user_sleep_df[self.user_sleep_df['date'] > cutoff_date]
         else:
             filtered_df = self.user_sleep_df

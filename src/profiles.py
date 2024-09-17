@@ -367,7 +367,7 @@ class ProfileFreethrows(Profile):
                      f"\n\tLongest Freethrows Streak: **{longest_streak}** days (from **{streak_start}** to **{streak_end}**)" \
                      f"\n\tTotal Freethrows Made: **{total_made}** out of **{total_attempted}**" \
                      f"\n\tTotal Freethrow Percentage: **{percentage:.1f}%**" \
-                     f"\n\tPersonal Record: **{self.__get_personal_record()}** freethrows made in a single day on **{self.__get_personal_record_date()}**\n\n"
+                     f"\n\tPersonal Record: **{self.__get_personal_record()}** freethrows made in a single day on **{self.__get_personal_record_date()}**"
         return freethrows
     
     def __get_personal_record(self):
@@ -466,10 +466,17 @@ class ProfileSleep(Profile):
         avg_sleep_week = self.__get_average_sleep(days=7)
         avg_sleep_month = self.__get_average_sleep(days=30)
 
+        total_sleep = self.__get_total_sleep()
+        total_sleep_week = self.__get_total_sleep(days=7)
+        total_sleep_month = self.__get_total_sleep(days=30)
+
         sleep_info = f"\n\n**Sleep**" \
                      f"\n\tAverage Sleep Duration: **{avg_sleep:.2f}** hours" \
                      f"\n\tAverage Sleep Duration (past week): **{avg_sleep_week:.2f}** hours" \
-                     f"\n\tAverage Sleep Duration (past month): **{avg_sleep_month:.2f}** hours"
+                     f"\n\tAverage Sleep Duration (past month): **{avg_sleep_month:.2f}** hours" \
+                     f"\n\tTotal Sleep Logged: **{total_sleep:.2f}** hours" \
+                     f"\n\tTotal Sleep This Week: **{total_sleep_week:.2f}** hours" \
+                     f"\n\tTotal Sleep This Month: **{total_sleep_month:.2f}** hours"
         return sleep_info
 
     def __get_average_sleep(self, days=None):
@@ -483,6 +490,18 @@ class ProfileSleep(Profile):
             filtered_df = self.user_sleep_df
 
         return filtered_df['hours_slept'].mean() if not filtered_df.empty else 0
+
+    def __get_total_sleep(self, days=None):
+        if self.user_sleep_df.empty:
+            return 0
+
+        if days:
+            cutoff_date = pd.Timestamp.now(tz='US/Pacific') - pd.Timedelta(days=days)
+            filtered_df = self.user_sleep_df[self.user_sleep_df['date'] > cutoff_date]
+        else:
+            filtered_df = self.user_sleep_df
+
+        return filtered_df['hours_slept'].sum() if not filtered_df.empty else 0
 
 class ProfileFactory:
     profile_segments = {

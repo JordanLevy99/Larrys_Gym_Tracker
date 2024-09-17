@@ -10,12 +10,12 @@ if __name__ == '__main__':
     conn = sqlite3.connect('larrys_database.db')
     cursor = conn.cursor()
 
-    # print all tables
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    print(cursor.fetchall())
+    # # print all tables
+    # cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    # print(cursor.fetchall())
 
-    # delete freethrow table
-    cursor.execute("DROP TABLE freethrows")
+    # # delete freethrow table
+    # cursor.execute("DROP TABLE freethrows")
 
     # # Update user balance
     # query = "UPDATE User SET current_balance = 99.45636112963 WHERE name = 'dinkstar'"
@@ -152,13 +152,21 @@ if __name__ == '__main__':
     # destination_db = '../larrys_database.db'
     # append_databases(source_db, destination_db)
 
-    # points_df = pd.read_sql_query("SELECT * FROM points", conn)
-    # print(points_df.tail(30))
-    # print(len(points_df))
-    # points_df = points_df.drop_duplicates()
-    # print(points_df.tail(30))
-    #
-    # points_df.to_sql('points', conn, if_exists='replace', index=False)
+    points_df = pd.read_sql_query("SELECT * FROM sleep_log", conn)
+    print(points_df.tail(30))
+    print(len(points_df))
+    points_df = points_df.drop_duplicates(subset=['user_id', 'date'])
+    print(points_df.tail(30))
+    
+    points_df.to_sql('sleep_log', conn, if_exists='replace', index=False)
+
+    points_df = pd.read_sql_query("SELECT * FROM sleep_points", conn)
+    print(points_df.tail(30))
+    print(len(points_df))
+    points_df = points_df.drop_duplicates(subset=['user_id', 'date'])
+    print(points_df.tail(30))
+    
+    points_df.to_sql('sleep_points', conn, if_exists='replace', index=False)
     # print(len(points_df))
 
     # latest_exercise_log_row = pd.read_sql_query("SELECT * FROM exercise_log", conn).iloc[-1]

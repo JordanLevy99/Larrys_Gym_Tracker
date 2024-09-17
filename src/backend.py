@@ -166,7 +166,7 @@ class LarrysDatabase(Database):
     def sleep_exists(self, user_id, date):
         self.cursor.execute("""
             SELECT COUNT(*) FROM sleep_log 
-            WHERE user_id = ? AND date = ?
+            WHERE user_id = ? AND date(date) = date(?)
         """, (user_id, date))
         count = self.cursor.fetchone()[0]
         return count > 0

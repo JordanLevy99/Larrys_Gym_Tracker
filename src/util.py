@@ -13,10 +13,12 @@ from src.types import BotConstants, WalkArgs
 def _process_query(query, type_filter=''):
     query = query.strip().upper()
     timezone = pytz.timezone('US/Pacific')
-    if '' == query:
+    if query == '':
         current_month = datetime.now(tz=timezone).month
         start_month = ((current_month - 1) // 3) * 3 + 1
         return 'season', f"""WHERE strftime('%m', day) >= "{start_month:02}" """, type_filter
+    elif query == 'SLEEP':
+        return 'sleep', '', ''  # Add this line to handle the 'sleep' query
     elif 'ON TIME' in query:
         return _process_query(query.replace('ON TIME', ''), type_filter="""WHERE type = "ON TIME" """)
     elif 'DURATION' in query:
@@ -34,6 +36,8 @@ def _process_query(query, type_filter=''):
         return 'yearly', f"""WHERE day >= "{datetime.now(tz=timezone).date().replace(month=1, day=1)}" """, type_filter
     elif 'ALL' in query:
         return 'all', '', type_filter
+    else:
+        return 'all', '', type_filter  # Default case to handle unexpected queries
 
 
 def calculate_points(database, users_df, users_durations, length_of_walk_in_minutes, max_duration_points, start_hour, stock_db=None):

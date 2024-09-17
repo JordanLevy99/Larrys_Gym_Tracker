@@ -19,7 +19,7 @@ from src.openai import OpenAICog
 from src.exercise import ExerciseCog
 from src.types import BotConstants, WalkArgs, Songs, ROOT_PATH
 from src.util import upload
-
+from src.extensions.sleep_tracker.sleep import SleepTracker
 
 class LarrysBot:
 
@@ -93,3 +93,4 @@ class LarrysBot:
         await self.discord_client.add_cog(DebugCommands(self))
         await self.discord_client.add_cog(YoutubeMusicPlayer(self))
         # await self.discord_client.add_cog(LarrysNewsCogs(self))
+        await self.discord_client.add_cog(SleepTracker(self))

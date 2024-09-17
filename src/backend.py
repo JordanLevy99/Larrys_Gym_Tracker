@@ -112,6 +112,12 @@ class LarrysDatabase(Database):
                         (message_id text, name text, id text, date datetime, number_made integer, number_attempted 
                         integer)''')
 
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS sleep_log
+                        (message_id text, date datetime, user_id text, name text, hours_slept float)''')
+
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS sleep_points
+                        (date datetime, user_id text, name text, points_type text, points integer)''')
+
     def add_daily_news(self, message_id, title, url, category, news_json, date):
         self.cursor.execute("INSERT INTO daily_news (message_id, title, url, category, news_json, date) VALUES (?, ?, ?, ?, ?, ?)",
                             (message_id, title, url, category, news_json, date))
@@ -144,6 +150,24 @@ class LarrysDatabase(Database):
             SELECT COUNT(*) FROM freethrows 
             WHERE name = ? AND id = ? AND date = ?
         """, (name, id, date))
+        count = self.cursor.fetchone()[0]
+        return count > 0
+
+    def log_sleep(self, message_id, date, user_id, name, hours_slept):
+        self.cursor.execute("INSERT INTO sleep_log (message_id, date, user_id, name, hours_slept) VALUES (?, ?, ?, ?, ?)",
+                            (message_id, date, user_id, name, hours_slept))
+        self.connection.commit()
+
+    def log_sleep_points(self, date, user_id, name, points_type, points):
+        self.cursor.execute("INSERT INTO sleep_points (date, user_id, name, points_type, points) VALUES (?, ?, ?, ?, ?)",
+                            (date, user_id, name, points_type, points))
+        self.connection.commit()
+
+    def sleep_exists(self, user_id, date):
+        self.cursor.execute("""
+            SELECT COUNT(*) FROM sleep_log 
+            WHERE user_id = ? AND date = ?
+        """, (user_id, date))
         count = self.cursor.fetchone()[0]
         return count > 0
 

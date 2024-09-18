@@ -157,7 +157,7 @@ class LarrysCommands(commands.Cog):
         
         main_query = f"""
             SELECT p.name, 
-                   SUM(p.points_awarded) + COALESCE(sp.sleep_points, 0) as '{points_column}', 
+                   SUM(p.points_awarded) as '{points_column}', 
                    COUNT(DISTINCT p.day) as 'days'
             FROM (
                 SELECT name, id, points_awarded, day, type

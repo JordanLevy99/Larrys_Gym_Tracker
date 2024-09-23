@@ -59,8 +59,8 @@ class SleepTracker(commands.Cog):
             )
             
             await message.add_reaction('✅')  # React to confirm logging
-            await message.channel.send(f"{message.author.mention} has logged {hours_slept} hours of sleep for {date.strftime('%Y-%m-%d')}.")
-            await message.channel.send(f"You have been awarded {points} sleep points on {date.strftime('%Y-%m-%d')}.")
+            # await message.channel.send(f"{message.author.mention} has logged {hours_slept} hours of sleep for {date.strftime('%Y-%m-%d')}.")
+            # await message.channel.send(f"You have been awarded {points} sleep points on {date.strftime('%Y-%m-%d')}.")
             self.bot.database.upload()
         else:
             await message.add_reaction('❌')  # React to indicate an error

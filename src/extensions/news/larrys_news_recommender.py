@@ -27,7 +27,7 @@ class NewsRecommenderEngine:
         """
         return pd.read_sql_query(query, self.database.connection)
     
-    def get_recommended_topic(self) -> str:
+    def get_recommended_topic(self, n = 10) -> str:
         """Use OpenAI to analyze reaction data and suggest a specific news topic"""
         df = self.get_reaction_scores()
         
@@ -35,27 +35,35 @@ class NewsRecommenderEngine:
         df['engagement_score'] = df['upvotes'] - df['downvotes']
         df = df.sort_values('engagement_score', ascending=False)
         
-        # Create a summary of top performing articles
-        top_articles = df.head(25)[['title', 'category', 'engagement_score']].to_string()
+        # Get top and bottom performing articles
+        top_articles = df.head(n)[['title', 'category', 'engagement_score']].to_string()
+        bottom_articles = df.tail(n)[['title', 'category', 'engagement_score']].to_string()
         
-        prompt = f"""Based on these most engaged news articles and their reactions:
+        prompt = f"""Analyze these news articles and their engagement scores:
 
+TOP PERFORMING ARTICLES (High Engagement):
 {top_articles}
 
+POORLY PERFORMING ARTICLES (Low Engagement):
+{bottom_articles}
+
 Suggest a specific news topic (2-3 words) that would be interesting to this audience. 
-Consider:
-1. Topics that received positive engagement
-2. Current trends related to popular categories
-3. The general theme of well-received articles
+The topic should be:
+1. Similar in theme/style to the top performing articles
+2. Different from the poorly performing articles
+3. Current and engaging
+4. Specific enough to get relevant results
 
-Return only the suggested topic, nothing else. For example: "artificial intelligence", "space exploration", or "renewable energy"."""
+Return only the suggested topic, nothing else. For example: "artificial intelligence", "space exploration", or "renewable energy".
+Do not include any explanation or additional text."""
 
+        print("Analyzing engagement patterns...")
         print(prompt)  
         response = self.openai_client.chat.completions.create(
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a news topic recommender. Respond only with the suggested topic.",
+                    "content": "You are a news topic recommender. Analyze the engagement patterns and respond only with a specific topic that matches successful articles and avoids unsuccessful ones. Respond with only the topic, no other text.",
                 },
                 {
                     "role": "user",
@@ -66,8 +74,9 @@ Return only the suggested topic, nothing else. For example: "artificial intellig
             temperature=0.7
         )
 
-        print(response)
-        return response.choices[0].message.content.strip().lower()
+        recommended_topic = response.choices[0].message.content.strip().lower()
+        print(f"Recommended topic: {recommended_topic}")
+        return recommended_topic
 
 class LarrysNewsRecommender:
     def __init__(self, database, openai_client):
@@ -129,7 +138,7 @@ class LarrysNewsCogs(commands.Cog):
         now = now.astimezone(pytz.timezone('US/Pacific'))
         target_time = datetime.datetime.replace(now,
                                                 hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=self.bot.walk_constants.WINNER_MINUTE + 2,
+                                                minute=self.bot.walk_constants.WINNER_MINUTE - 2,
                                                 second=0,
                                                 microsecond=0)
         if now > target_time:

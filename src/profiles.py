@@ -409,8 +409,8 @@ class ProfileFreethrows(Profile):
         streak_end = None
         current_streak = 1
         prev_date = None
-        
-        for date in self.user_freethrows_df['date']:
+        print(self.user_freethrows_df['date'])
+        for date in sorted(self.user_freethrows_df['date'], reverse=True):
             if prev_date is not None and (date - prev_date).days == 1:
                 current_streak += 1
                 if current_streak == longest_streak:

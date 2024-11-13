@@ -7,10 +7,7 @@ from datetime import timedelta
 import discord
 import numpy as np
 import pytz
-from discord import Message
 from discord.ext import commands, tasks
-from discord.ext.commands import Context
-from discord.ext.commands.view import StringView
 
 from src.openai import OpenAICog
 from src.types import ROOT_PATH

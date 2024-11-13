@@ -70,3 +70,4 @@ class OpenAICog(commands.Cog):
             temperature=temperature
         )
         return response.choices[0].message.content
+

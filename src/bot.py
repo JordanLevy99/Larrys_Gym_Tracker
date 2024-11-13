@@ -13,7 +13,6 @@ from src.extensions.music_player.youtube import YoutubeMusicPlayer
 from src.extensions.news.larrys_news_recommender import LarrysNewsCogs
 from src.extensions.stock_trading.larrys_stock_trader import FinnhubAPI, StockUserCommands, StockCommands
 from src.profiles import ProfileCommands
-from src.realtime import WebSocketCog
 from src.tasks import LarrysTasks
 from src.events import LarrysEvents
 from src.openai import OpenAICog
@@ -21,7 +20,6 @@ from src.exercise import ExerciseCog
 from src.types import BotConstants, WalkArgs, Songs, ROOT_PATH
 from src.util import upload
 from src.extensions.sleep_tracker.sleep import SleepTracker
-from src.voice_capture import VoiceCaptureCog
 
 
 class LarrysBot:
@@ -97,4 +95,3 @@ class LarrysBot:
         await self.discord_client.add_cog(YoutubeMusicPlayer(self))
         await self.discord_client.add_cog(LarrysNewsCogs(self))
         await self.discord_client.add_cog(SleepTracker(self))
-        await self.discord_client.add_cog(WebSocketCog(self))

@@ -1,4 +1,5 @@
-discord.py
+git+https://github.com/Rapptz/discord.py.git
+git+https://github.com/imayhaveborkedit/discord-ext-voice-recv.git
 python-dotenv
 pandas
 pydrive
@@ -12,3 +13,4 @@ mutagen
 finnhub-python
 yt-dlp
 newsapi-python
+pydub

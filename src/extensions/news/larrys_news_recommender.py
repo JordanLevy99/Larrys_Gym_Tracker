@@ -74,18 +74,39 @@ class LarrysNewsRecommender:
         self.client = NewsApiClient(api_key=os.getenv('NEWS_API_KEY'))
         self.recommender_engine = NewsRecommenderEngine(database, openai_client)
 
-    def get_news(self, topic=None, page_size=5, country='us') -> Tuple[str, List[dict]]:
+    def get_news(self, topic=None, page_size=5, country='us', max_retries=3) -> Tuple[str, List[dict]]:
         if topic is None:
             topic = self.recommender_engine.get_recommended_topic()
-            
-        news = self.client.get_everything(
-            q=topic,
-            language='en',
-            page_size=page_size,
-            sort_by='relevancy'
-        )
         
-        articles = news['articles']
+        articles = []
+        attempt = 0
+        
+        while attempt < max_retries and not articles:
+            news = self.client.get_everything(
+                q=topic,
+                language='en',
+                page_size=page_size * 2,  # Request more articles to have backup options
+                sort_by='relevancy'
+            )
+            
+            # Filter out [Removed] articles
+            articles = [
+                article for article in news['articles']
+                if article['title'] and 
+                   article['url'] and 
+                   '[Removed]' not in article['title'] and 
+                   'removed.com' not in article['url'].lower()
+            ][:page_size]  # Take only the requested number of valid articles
+            
+            if not articles:
+                attempt += 1
+                print(f"Attempt {attempt}: No valid articles found for topic '{topic}', retrying...")
+                # Get a new topic for the next attempt
+                topic = self.recommender_engine.get_recommended_topic()
+        
+        if not articles:
+            raise ValueError(f"Could not find valid articles after {max_retries} attempts")
+        
         news_str = f'Today\'s recommended topic: {topic}\n\n'
         for i, article in enumerate(articles):
             news_str += f"Article {i + 1}: {article['title']}\n{article['url']}\n\n"
@@ -119,12 +140,17 @@ class LarrysNewsCogs(commands.Cog):
 
     async def __get_recommended_news(self, ctx):
         """Get news for AI-recommended topic based on user engagement"""
-        news_message, articles = self.news_recommender.get_news(page_size=1)
-        message = await ctx.send(news_message)
-        await self.__add_reactions_to_message(message)
-        
-        for article in articles:
-            await self.__store_article(message, article, "ai_recommended")
+        try:
+            news_message, articles = self.news_recommender.get_news(page_size=1)
+            message = await ctx.send(news_message)
+            await self.__add_reactions_to_message(message)
+            
+            for article in articles:
+                await self.__store_article(message, article, "ai_recommended")
+        except ValueError as e:
+            error_message = "Sorry, I couldn't find any valid news articles at the moment. Please try again later."
+            await ctx.send(error_message)
+            print(f"Error getting news: {str(e)}")
 
     async def __store_article(self, message, article, category):
         """Store article information in database"""

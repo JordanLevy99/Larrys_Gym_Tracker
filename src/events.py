@@ -20,6 +20,7 @@ class LarrysEvents(commands.Cog):
         download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         download(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         print(pd.read_sql_query("SELECT * FROM voice_log", self.bot.database.connection).tail())
+        self.bot.discord_client.cogs['LarrysTasks'].initialize_new_users.start()
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):

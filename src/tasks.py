@@ -202,26 +202,37 @@ class LarrysTasks(commands.Cog):
     @tasks.loop(hours=24)
     async def initialize_new_users(self):
         """Check for and initialize any new users daily"""
+        print("\n=== Starting initialize_new_users task ===")
         try:
             guild = self.bot.discord_client.get_guild(self.bot.bot_constants.GUILD_ID)
             if not guild:
-                print("Could not find guild")
+                print(f"Could not find guild with ID: {self.bot.bot_constants.GUILD_ID}")
                 return
+            print(f"Found guild: {guild.name}")
                 
             walkers = get(guild.roles, name='Walker')
             if not walkers:
-                print("Could not find Walker role")
+                print("Could not find Walker role in guild")
                 return
+            print(f"Found Walker role with {len(walkers.members)} members")
 
             await self._initialize_new_walkers(walkers.members)
             
         except Exception as e:
             print(f"Error in initialize_new_users task: {e}")
+            import traceback
+            print(traceback.format_exc())
+        finally:
+            print("=== Finished initialize_new_users task ===\n")
 
     async def _initialize_new_walkers(self, walkers):
         """Initialize any walkers that don't exist in the database"""
+        print("Starting _initialize_new_walkers")
+        
         # Get existing users from database
         existing_users = self.bot.stock_exchange_database.get_all_user_ids()
+        print(f"Found {len(existing_users)} existing users in database")
+        print(f"Existing user IDs: {existing_users}")
         
         # Find new users
         new_users = [
@@ -230,15 +241,26 @@ class LarrysTasks(commands.Cog):
         ]
         
         if not new_users:
+            print("No new users found to initialize")
             return
+
+        print(f"Found {len(new_users)} new users to initialize:")
+        for user in new_users:
+            print(f"  - {user.name} (ID: {user.id})")
 
         # Initialize each new user
         for user in new_users:
-            self.bot.stock_exchange_database.initialize_user(
-                user_id=user.id,
-                name=user.name,
-                balance=0
-            )
-            print(f"Initialized new user {user.name} in stock exchange database")
+            try:
+                self.bot.stock_exchange_database.initialize_user(
+                    user_id=user.id,
+                    name=user.name,
+                    balance=0
+                )
+                print(f"Successfully initialized new user {user.name} (ID: {user.id}) in stock exchange database")
+            except Exception as e:
+                print(f"Error initializing user {user.name} (ID: {user.id}): {e}")
+                import traceback
+                print(traceback.format_exc())
 
         self.bot.stock_exchange_database.connection.commit()
+        print("Committed all new user initializations to database")

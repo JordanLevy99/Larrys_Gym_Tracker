@@ -10,6 +10,7 @@ import discord
 import pandas as pd
 import pytz
 from discord.ext import commands, tasks
+from discord.utils import get
 
 from src.openai import OpenAICog
 from src.types import ROOT_PATH
@@ -197,3 +198,47 @@ class LarrysTasks(commands.Cog):
             print(f"Freethrow logged for {message.author.name} on {date.strftime('%Y-%m-%d')} with {number_made} made and {number_attempted} attempted.")
         else:
             await message.add_reaction('❌')  # React to indicate an error
+
+    @tasks.loop(hours=24)
+    async def initialize_new_users(self):
+        """Check for and initialize any new users daily"""
+        try:
+            guild = self.bot.discord_client.get_guild(self.bot.bot_constants.GUILD_ID)
+            if not guild:
+                print("Could not find guild")
+                return
+                
+            walkers = get(guild.roles, name='Walker')
+            if not walkers:
+                print("Could not find Walker role")
+                return
+
+            await self._initialize_new_walkers(walkers.members)
+            
+        except Exception as e:
+            print(f"Error in initialize_new_users task: {e}")
+
+    async def _initialize_new_walkers(self, walkers):
+        """Initialize any walkers that don't exist in the database"""
+        # Get existing users from database
+        existing_users = self.bot.stock_exchange_database.get_all_user_ids()
+        
+        # Find new users
+        new_users = [
+            walker for walker in walkers 
+            if str(walker.id) not in existing_users
+        ]
+        
+        if not new_users:
+            return
+
+        # Initialize each new user
+        for user in new_users:
+            self.bot.stock_exchange_database.initialize_user(
+                user_id=user.id,
+                name=user.name,
+                balance=0
+            )
+            print(f"Initialized new user {user.name} in stock exchange database")
+
+        self.bot.stock_exchange_database.connection.commit()

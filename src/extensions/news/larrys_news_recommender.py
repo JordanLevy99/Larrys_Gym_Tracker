@@ -24,6 +24,19 @@ class NewsRecommenderEngine:
         past_topics = pd.read_sql_query(query, self.database.connection)
         return past_topics['topic'].tolist()
     
+    def get_reaction_scores(self) -> pd.DataFrame:
+        """Fetch and process reaction data from database"""
+        query = """
+        SELECT n.message_id, n.title, n.category, n.date, 
+               SUM(CASE WHEN r.emoji = '👍' THEN r.count ELSE 0 END) as upvotes,
+               SUM(CASE WHEN r.emoji = '👎' THEN r.count ELSE 0 END) as downvotes
+        FROM daily_news n
+        LEFT JOIN reactions r ON n.message_id = r.message_id
+        GROUP BY n.message_id, n.title, n.category, n.date
+        """
+        return pd.read_sql_query(query, self.database.connection)
+
+    
     def get_recommended_topic(self, n=10) -> str:
         """Use OpenAI to analyze reaction data and suggest a specific news topic, avoiding past topics."""
         df = self.get_reaction_scores()
@@ -82,7 +95,7 @@ class LarrysNewsRecommender:
         self.client = NewsApiClient(api_key=os.getenv('NEWS_API_KEY'))
         self.recommender_engine = NewsRecommenderEngine(database, openai_client)
 
-    def get_news(self, topic=None, page_size=5, country='us', max_retries=3) -> Tuple[str, List[dict]]:
+    def get_news(self, topic=None, page_size=5, country='us', max_retries=5) -> Tuple[str, List[dict]]:
         if topic is None:
             topic = self.recommender_engine.get_recommended_topic()
         

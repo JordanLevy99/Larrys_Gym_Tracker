@@ -318,3 +318,8 @@ class LarrysStockExchange(Database):
                     (price * quantity) * transaction_type_modifier)) / new_quantity
         self.cursor.execute("UPDATE Portfolio SET quantity = ?, cost_basis = ? WHERE user_id = ? AND symbol = ?",
                             (new_quantity, new_cost_basis, user_id, symbol))
+
+    def get_all_user_ids(self) -> set:
+        """Get all user IDs currently in the database"""
+        self.cursor.execute("SELECT id FROM User")
+        return {str(row[0]) for row in self.cursor.fetchall()}

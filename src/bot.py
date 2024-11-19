@@ -69,6 +69,9 @@ class LarrysBot:
         self.openai_client = OpenAI(
             api_key=os.environ.get("OPENAI_API_KEY"),
         )
+        self.bot_constants.GUILD_ID = int(os.getenv('GUILD_ID'))
+        if self.args.test:
+            self.bot_constants.GUILD_ID = 1184194460884672513
 
     def run(self):
         loop = asyncio.get_event_loop()

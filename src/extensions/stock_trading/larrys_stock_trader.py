@@ -68,7 +68,7 @@ class StockUserCommands(commands.Cog):
         self.stock_transaction_factory = StockTransactionFactory(self.bot)
 
     @commands.command()
-    async def initialize_users(self, ctx, db_file):
+    async def initialize_users(self, ctx, db_file = 'larrys_stock_exchange.db'):
         walkers = discord.utils.get(ctx.guild.roles, name='Walker').members
         balance_table = self.db.initialize_users(db_file, walkers)
         self.db.connection.commit()

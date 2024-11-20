@@ -15,14 +15,14 @@ class NewsRecommenderEngine:
         self.database = database
         self.openai_client = openai_client
         
-    def get_past_topics(self) -> List[str]:
-        """Fetch a list of previously used topics from the database."""
-        query = """
-        SELECT DISTINCT topic 
-        FROM daily_news
-        """
-        past_topics = pd.read_sql_query(query, self.database.connection)
-        return past_topics['topic'].tolist()
+    # def get_past_topics(self) -> List[str]:
+    #     """Fetch a list of previously used topics from the database."""
+    #     query = """
+    #     SELECT DISTINCT topic 
+    #     FROM daily_news
+    #     """
+    #     past_topics = pd.read_sql_query(query, self.database.connection)
+    #     return past_topics['topic'].tolist()
     
     def get_reaction_scores(self) -> pd.DataFrame:
         """Fetch and process reaction data from database"""
@@ -40,7 +40,7 @@ class NewsRecommenderEngine:
     def get_recommended_topic(self, n=10) -> str:
         """Use OpenAI to analyze reaction data and suggest a specific news topic, avoiding past topics."""
         df = self.get_reaction_scores()
-        past_topics = self.get_past_topics()
+        # past_topics = self.get_past_topics()
         
         # Prepare the data for OpenAI analysis
         df['engagement_score'] = df['upvotes'] - df['downvotes']
@@ -64,7 +64,6 @@ The topic should be:
 2. Different from the poorly performing articles
 3. Current and engaging
 4. Specific enough to get relevant results
-5. Excluded from this list of past topics: {', '.join(past_topics)}
 
 Return only the suggested topic, nothing else. For example: "artificial intelligence", "space exploration", or "renewable energy".
 Do not include any explanation or additional text."""

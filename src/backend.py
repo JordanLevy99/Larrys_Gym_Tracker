@@ -214,6 +214,8 @@ class LarrysStockExchange(Database):
             "SELECT DISTINCT(name) as name, id as user_id FROM points GROUP BY name").fetchall()
         users_starting_balance = larrys_database.cursor.execute(
             "SELECT DISTINCT(name) as name, SUM(points_awarded) as total_points FROM points GROUP BY name").fetchall()
+        print('Here are the users and their starting balances:')
+        print(users_starting_balance)
         users_df = pd.read_sql_query("SELECT * FROM User", self.connection)
         if users_df.empty:
             users_df = self.__initialize_all_users(all_users, users_starting_balance, walkers)

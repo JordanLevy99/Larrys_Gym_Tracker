@@ -174,6 +174,38 @@ class ProfileCommands(commands.Cog):
             ORDER BY date DESC
         """, self.bot.database.connection)
 
+    async def get_profile_text(self, member_id: int, member_name: str) -> str:
+        """Get profile text for a user programmatically"""
+        self.__walkers = await self.bot.discord_client.get_guild(self.bot.bot_constants.GUILD_ID).fetch_roles()
+        self.__walkers = [role for role in self.__walkers if role.name == 'Walker'][0].members
+        
+        self.__total_number_of_days = self.__get_total_number_of_days()
+        member = discord.Object(id=member_id)
+        member.name = member_name
+
+        winner_df = self.__get_winner_df()
+        user_joins_df = self.__get_user_joins_df(member_name)
+        user_exercise_df = self.__get_user_exercise_df(member_name)
+        user_points_df = self.__get_user_points_df(member_name)
+        user_freethrows_df = self.__get_user_freethrows_df(member_name)
+        user_sleep_df = self.__get_user_sleep_df(member_name)
+
+        profile_data = {
+            'days': (user_joins_df, self.__total_number_of_days),
+            'streaks': (user_joins_df, user_exercise_df, winner_df.query(f'name == "{member_name}"')),
+            'wins': (winner_df, len(user_joins_df), member, self.__total_number_of_days),
+            'times': (user_joins_df,),
+            'points': (user_points_df,),
+            'freethrows': (user_freethrows_df, member_name),
+            'sleep': (user_sleep_df, member_name)
+        }
+
+        profile = ''
+        for section in self.__sections:
+            profile += ProfileFactory().create(section, profile_data[section]).generate()
+        
+        return profile
+
 
 class Profile(ABC):
 
@@ -384,7 +416,7 @@ class ProfileFreethrows(Profile):
     
     def __get_longest_streak(self):
         if self.user_freethrows_df.empty:
-            return 0
+            return 0, "", ""
 
         self.user_freethrows_df['date'] = pd.to_datetime(self.user_freethrows_df['date']).dt.date
         self.user_freethrows_df = self.user_freethrows_df.sort_values('date')
@@ -415,7 +447,7 @@ class ProfileFreethrows(Profile):
                 current_streak += 1
                 if current_streak == longest_streak:
                     streak_end = date
-            else:
+            elif prev_date is not None:
                 if current_streak == longest_streak:
                     streak_start = prev_date - timedelta(days=longest_streak - 1)
                     break

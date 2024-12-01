@@ -42,7 +42,18 @@ class YearInReview(commands.Cog):
                 review = await self.generate_user_review(walker.id, walker.name)
                 print(f"Successfully generated review for {walker.name}")
                 print(review)
-                await walker.send(review)
+                
+                # Split message if it's too long
+                if len(review) > 2000:
+                    print(f"Review length ({len(review)} chars) exceeds Discord limit, splitting into multiple messages")
+                    messages = self._split_review(review)
+                    for i, message in enumerate(messages, 1):
+                        print(f"Sending part {i}/{len(messages)} ({len(message)} chars)")
+                        await walker.send(message)
+                        await asyncio.sleep(1)  # Small delay between messages
+                else:
+                    await walker.send(review)
+                    
                 print(f"✅ Sent review to {walker.name}")
             except Exception as e:
                 print(f"❌ Error processing {walker.name}: {e}")
@@ -108,7 +119,7 @@ class YearInReview(commands.Cog):
         now = datetime.datetime.now()
         now = now.astimezone(pytz.timezone('US/Pacific'))
         target_time = datetime.datetime.replace(now,
-                                                hour=self.bot.walk_constants.WINNER_HOUR,
+                                                hour=self.bot.walk_constants.WINNER_HOUR+1,
                                                 minute=0,
                                                 second=0,
                                                 microsecond=0)
@@ -320,3 +331,35 @@ class YearInReview(commands.Cog):
 🏆 Achievements:
 {chr(10).join(stats['achievements'])}
 """
+
+    def _split_review(self, review: str) -> List[str]:
+        """Split a long review into multiple messages under 2000 characters each"""
+        messages = []
+        current_message = ""
+        
+        # Split by double newlines to keep formatting blocks together
+        sections = review.split('\n\n')
+        
+        for section in sections:
+            # If adding this section would exceed limit, start new message
+            if len(current_message) + len(section) + 2 > 1900:  # Leave some buffer
+                if current_message:
+                    messages.append(current_message.strip())
+                current_message = section
+            else:
+                if current_message:
+                    current_message += '\n\n'
+                current_message += section
+        
+        # Add any remaining content
+        if current_message:
+            messages.append(current_message.strip())
+        
+        # Add part numbers if there are multiple messages
+        if len(messages) > 1:
+            messages = [
+                f"Larry's Gym Year in Review (Part {i+1}/{len(messages)})\n\n{msg}"
+                for i, msg in enumerate(messages)
+            ]
+        
+        return messages

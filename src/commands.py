@@ -98,11 +98,23 @@ class LarrysCommands(commands.Cog):
         self.__walkers = None
 
     @commands.command()
-    async def start_time(self, ctx, start_hour: int):
-        self.bot.walk_constants.START_HOUR = start_hour
+    async def start_time(self, ctx, start_hour: int = None):
+        """Set the walk start time, defaulting to 7am on weekdays and 9am on weekends"""
+        now = datetime.now(pytz.timezone('US/Pacific'))
+        is_weekend = now.weekday() >= 5  # 5 is Saturday, 6 is Sunday
+        
+        if start_hour is None:
+            start_hour = self.bot.walk_constants.WEEKEND_START_HOUR if is_weekend else self.bot.walk_constants.START_HOUR
+        
+        if is_weekend:
+            self.bot.walk_constants.WEEKEND_START_HOUR = start_hour
+        else:
+            self.bot.walk_constants.START_HOUR = start_hour
+            
         self.bot.walk_constants.END_HOUR = start_hour + 2
-        self.bot.walk_constants.WINNER_HOUR = start_hour
-        await ctx.send(f'Walk start time set to {start_hour}:00 Pacific time for today...')
+        
+        day_type = "weekend" if is_weekend else "weekday"
+        await ctx.send(f'Walk start time set to {start_hour}:00 Pacific time for this {day_type}...')
 
     @commands.command()
     async def end_walk(self, ctx):

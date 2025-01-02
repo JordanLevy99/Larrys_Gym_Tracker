@@ -31,13 +31,18 @@ class LarrysEvents(commands.Cog):
         #     return
         print(f'here are the bot constants again: {self.bot.bot_constants.__dict__}')
         current_time, pacific_time = _get_current_time()
-        walk_hour_condition = (
-                    self.bot.walk_constants.START_HOUR <= pacific_time.hour < self.bot.walk_constants.END_HOUR)
+        
+        # Determine if it's a weekend
+        is_weekend = pacific_time.weekday() >= 5
+        start_hour = self.bot.walk_constants.WEEKEND_START_HOUR if is_weekend else self.bot.walk_constants.START_HOUR
+        end_hour = start_hour + 2
+        
+        walk_hour_condition = (start_hour <= pacific_time.hour < end_hour)
 
         if self.bot.walk_constants.WALK_ENDED:
             await self.__check_to_start_new_walk(member, pacific_time, walk_hour_condition)
 
-        # Check if the time is between 7am and 9am in Pacific timezone
+        # Check if the time is between start_hour and end_hour in Pacific timezone
         if walk_hour_condition:
             if self.__voice_channel_status_changed(after):
                 await self.__log_voice_channel_event(after, member, joined=True)
@@ -45,9 +50,10 @@ class LarrysEvents(commands.Cog):
             if self.__voice_channel_status_changed(before):
                 await self.__log_voice_channel_event(before, member, joined=False)
         elif self.__voice_channel_status_changed(after):
+            day_type = "weekend" if is_weekend else "weekday"
             await member.send(
                 f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between "
-                f"{self.bot.walk_constants.START_HOUR}:00 and {self.bot.walk_constants.END_HOUR}:00 Pacific time.")
+                f"{start_hour}:00 and {end_hour}:00 Pacific time on {day_type}s.")
 
     def log_and_upload(self, member, event_time, joining):
         if self.bot.args.verbose:

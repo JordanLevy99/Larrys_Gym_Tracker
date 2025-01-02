@@ -2,6 +2,8 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Tuple, List
+import datetime
+import pytz
 
 ROOT_PATH = Path(os.path.dirname(Path(os.path.abspath(__file__)).parent))
 
@@ -21,13 +23,18 @@ class BotConstants:
 @dataclass
 class WalkArgs:
     START_HOUR: int = 7
+    WEEKEND_START_HOUR: int = 9
     END_HOUR: int = 9
     LENGTH_OF_WALK_IN_MINUTES: int = 45
     MAX_ON_TIME_POINTS: int = 50
     MAX_DURATION_POINTS: int = 50
     WALK_ENDED: bool = False
-    WINNER_HOUR: int = START_HOUR
     WINNER_MINUTE: int = 8
+    
+    @property
+    def WINNER_HOUR(self) -> int:
+        now = datetime.datetime.now(pytz.timezone('US/Pacific'))
+        return self.WEEKEND_START_HOUR if now.weekday() >= 5 else self.START_HOUR
 
 
 @dataclass

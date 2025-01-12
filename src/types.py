@@ -24,7 +24,7 @@ class BotConstants:
 class WalkArgs:
     START_HOUR: int = 7
     WEEKEND_START_HOUR: int = 9
-    END_HOUR: int = 9
+    #END_HOUR: int = 9
     LENGTH_OF_WALK_IN_MINUTES: int = 45
     MAX_ON_TIME_POINTS: int = 50
     MAX_DURATION_POINTS: int = 50
@@ -36,6 +36,10 @@ class WalkArgs:
         now = datetime.datetime.now(pytz.timezone('US/Pacific'))
         return self.WEEKEND_START_HOUR if now.weekday() >= 5 else self.START_HOUR
 
+    @property
+    def END_HOUR(self) -> int:
+        now = datetime.datetime.now(pytz.timezone('US/Pacific'))
+        return self.WEEKEND_START_HOUR+2 if now.weekday() >= 5 else self.START_HOUR+2
 
 @dataclass
 class Songs:

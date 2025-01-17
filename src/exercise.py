@@ -215,7 +215,7 @@ class ExerciseCog(commands.Cog):
             upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         except ValueError as e:
             print(e)
-            ctx.send('There was an error logging your exercise. Contact @dinkster for help.')
+            await ctx.send('There was an error logging your exercise. Contact @dinkster for help.')
 
     def __update_points(self, ctx, current_date, exercise_points):
         self.bot.database.cursor.execute(f"""INSERT INTO points (name, id, points_awarded, day, type)

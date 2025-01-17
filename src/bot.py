@@ -11,6 +11,7 @@ from src.backend import Dropbox, LarrysDatabase, LarrysStockExchange, Local
 from src.commands import LarrysCommands, DebugCommands
 from src.extensions.music_player.youtube import YoutubeMusicPlayer
 from src.extensions.news.larrys_news_recommender import LarrysNewsCogs
+# from src.extensions.realtime.realtime_cog import RealtimeCog
 from src.extensions.stock_trading.larrys_stock_trader import FinnhubAPI, StockUserCommands, StockCommands
 from src.profiles import ProfileCommands
 from src.tasks import LarrysTasks
@@ -100,3 +101,4 @@ class LarrysBot:
         await self.discord_client.add_cog(LarrysNewsCogs(self))
         await self.discord_client.add_cog(SleepTracker(self))
         await self.discord_client.add_cog(YearInReview(self))
+        # await self.discord_client.add_cog(RealtimeCog(self))

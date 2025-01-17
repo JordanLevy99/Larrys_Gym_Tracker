@@ -1,5 +1,6 @@
 git+https://github.com/Rapptz/discord.py.git
-git+https://github.com/imayhaveborkedit/discord-ext-voice-recv.git
+git+https://github.com/JordanLevy99/discord-ext-voice-recv.git
+discord.py[voice]>=2.4.0
 python-dotenv
 pandas
 pydrive
@@ -14,3 +15,6 @@ finnhub-python
 yt-dlp
 newsapi-python
 pydub
+webrtcvad
+websockets
+numpy

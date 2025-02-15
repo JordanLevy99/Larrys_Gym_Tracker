@@ -1,0 +1,42 @@
+{
+    "discord": {
+        "token": "YOUR_DISCORD_BOT_TOKEN",
+        "guild_id": "YOUR_GUILD_ID",
+        "channels": {
+            "text": {
+                "name": "larrys-gym-logger",
+                "id": "YOUR_TEXT_CHANNEL_ID"
+            },
+            "voice": {
+                "name": "Larry's Gym",
+                "id": "YOUR_VOICE_CHANNEL_ID"
+            }
+        }
+    },
+    "database": {
+        "main_db": "larrys_database.db",
+        "stock_db": "larrys_stock_exchange.db"
+    },
+    "api_keys": {
+        "openai": "YOUR_OPENAI_API_KEY",
+        "perplexity": "YOUR_PERPLEXITY_API_KEY",
+        "finnhub": "YOUR_FINNHUB_API_KEY"
+    },
+    "birthday_songs": {
+        "example_user": {
+            "month": 1,
+            "day": 1,
+            "song_link": "https://www.youtube.com/watch?v=example",
+            "song_file": "happy_birthday_example.mp3"
+        }
+    },
+    "winner_songs": {
+        "example_user": [
+            {
+                "file": "example_song.mp3",
+                "duration": 15,
+                "start_second": 0
+            }
+        ]
+    }
+} 

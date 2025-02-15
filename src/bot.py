@@ -3,12 +3,12 @@ import os
 
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
 from openai import OpenAI
 
 from cli.args import parse_args
 from src.backend import Dropbox, LarrysDatabase, LarrysStockExchange, Local
 from src.commands import LarrysCommands, DebugCommands
+from src.config import Config
 from src.extensions.music_player.youtube import YoutubeMusicPlayer
 from src.extensions.news.larrys_news_recommender import LarrysNewsCogs
 # from src.extensions.realtime.realtime_cog import RealtimeCog
@@ -27,8 +27,8 @@ from src.extensions.year_in_review import YearInReview
 class LarrysBot:
 
     def __init__(self):
-
         self.args = parse_args()
+        self.config = Config()
 
         if self.args.test or self.args.local:
             print(discord.opus.is_loaded())
@@ -45,35 +45,49 @@ class LarrysBot:
 
         intents = self._get_intents()
         self.discord_client = commands.Bot(command_prefix='!', intents=intents)
+        
+        # Initialize bot constants from config
         self.bot_constants = BotConstants()
+        self.bot_constants.TOKEN = self.config.discord.token
+        self.bot_constants.TEXT_CHANNEL = self.config.discord.text_channel_name
+        self.bot_constants.VOICE_CHANNEL = self.config.discord.voice_channel_name
+        self.bot_constants.TEXT_CHANNEL_ID = self.config.discord.text_channel_id
+        self.bot_constants.VOICE_CHANNEL_ID = self.config.discord.voice_channel_id
+        self.bot_constants.GUILD_ID = self.config.discord.guild_id
+        self.bot_constants.DB_FILE = self.config.database.main_db
+        self.bot_constants.STOCK_DB_FILE = self.config.database.stock_db
+        self.bot_constants.DB_PATH = ROOT_PATH / 'data' / self.bot_constants.DB_FILE
+
         if self.args.test:
-            # TODO: add these (and the original IDs) to the .env file)
             print('Running in test mode...')
             self.bot_constants.TEXT_CHANNEL_ID = 1193977937955913879
             self.bot_constants.VOICE_CHANNEL_ID = 1191159993861414922
             self.bot_constants.DB_FILE = 'test.db'
             self.bot_constants.DB_PATH = ROOT_PATH / 'data' / self.bot_constants.DB_FILE
             self.bot_constants.STOCK_DB_FILE = 'test_stock_exchange.db'
-        print('these are the bot constants:', self.bot_constants.__dict__)
-        load_dotenv()
+            self.bot_constants.GUILD_ID = 1184194460884672513
+
+        print('Bot constants:', self.bot_constants.__dict__)
+        
         self.database = LarrysDatabase(self.bot_constants.DB_FILE)
         self.backend_client = Local() if self.args.local else Dropbox()
         upload(self.backend_client, self.bot_constants.DB_FILE)
         self.stock_exchange_database = LarrysStockExchange(self.bot_constants.STOCK_DB_FILE)
-        self.stock_api = FinnhubAPI(os.getenv('FINNHUB_API_KEY'))
+        self.stock_api = FinnhubAPI(self.config.api_keys.finnhub)
         self.walk_constants = WalkArgs()
+        
+        # Initialize songs from config
         self.songs = Songs()
-        self.bot_constants.TOKEN = os.getenv('BOT_TOKEN')
+        self.songs.BIRTHDAY = self.config.birthday_tuples
+        self.songs.WINNER = self.config.winner_song_tuples
+        
         self.perplexity_client = OpenAI(
-            api_key=os.environ.get("PERPLEXITY_API_KEY"),
+            api_key=self.config.api_keys.perplexity,
             base_url="https://api.perplexity.ai"
         )
         self.openai_client = OpenAI(
-            api_key=os.environ.get("OPENAI_API_KEY"),
+            api_key=self.config.api_keys.openai,
         )
-        self.bot_constants.GUILD_ID = int(os.getenv('GUILD_ID'))
-        if self.args.test:
-            self.bot_constants.GUILD_ID = 1184194460884672513
 
     def run(self):
         loop = asyncio.get_event_loop()

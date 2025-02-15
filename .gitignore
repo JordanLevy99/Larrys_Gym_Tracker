@@ -172,3 +172,26 @@ cython_debug/
 #.idea/
 
 /.env
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+config.json
+.env
+*.db
+data/songs/*.mp3
+data/*.mp3
+data/*.wav
+
+# Logs
+*.log
+logs/

@@ -1,5 +1,6 @@
 import asyncio
 import os
+from pathlib import Path
 
 import discord
 from discord.ext import commands
@@ -28,7 +29,10 @@ class LarrysBot:
 
     def __init__(self):
         self.args = parse_args()
-        self.config = Config()
+        
+        # Load appropriate config based on mode
+        config_path = Path('test_config.json') if self.args.test else Path('config.json')
+        self.config = Config(config_path)
 
         if self.args.test or self.args.local:
             print(discord.opus.is_loaded())

@@ -93,7 +93,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Discord.py team for the amazing Discord API wrapper
-- OpenAI for AI capabilities
+- OpenAI and Perplexity for AI capabilities
 - All contributors and users of the bot
 
 ## Support

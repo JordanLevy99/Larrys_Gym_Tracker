@@ -1,5 +1,4 @@
 import asyncio
-import os
 from pathlib import Path
 
 import discord
@@ -61,15 +60,6 @@ class LarrysBot:
         self.bot_constants.DB_FILE = self.config.database.main_db
         self.bot_constants.STOCK_DB_FILE = self.config.database.stock_db
         self.bot_constants.DB_PATH = ROOT_PATH / 'data' / self.bot_constants.DB_FILE
-
-        if self.args.test:
-            print('Running in test mode...')
-            self.bot_constants.TEXT_CHANNEL_ID = 1193977937955913879
-            self.bot_constants.VOICE_CHANNEL_ID = 1191159993861414922
-            self.bot_constants.DB_FILE = 'test.db'
-            self.bot_constants.DB_PATH = ROOT_PATH / 'data' / self.bot_constants.DB_FILE
-            self.bot_constants.STOCK_DB_FILE = 'test_stock_exchange.db'
-            self.bot_constants.GUILD_ID = 1184194460884672513
 
         print('Bot constants:', self.bot_constants.__dict__)
         

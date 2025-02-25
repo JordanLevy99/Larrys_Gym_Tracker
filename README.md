@@ -44,8 +44,9 @@ pip install -r requirements.txt
 4. Set up configuration:
 ```bash
 cp config.example.json config.json
+cp .env.example .env
 ```
-Edit `config.json` with your own values.
+Edit `config.json` and `.env` with your own values.
 
 ## Configuration
 
@@ -59,9 +60,25 @@ The bot requires several configuration values to be set up. Copy `config.example
   - OpenAI
   - Perplexity
   - Finnhub
+  - News API (optional)
+  - Odds API (optional)
+  - Dropbox (optional, for database backup)
 - Custom Songs:
   - Birthday songs
   - Winner celebration songs
+- User Information:
+  - Display names
+  - Birthdates
+
+You can also use environment variables by copying `.env.example` to `.env` and setting your API keys there.
+
+## Security Notes
+
+- **Never commit your config.json or .env files** to version control
+- Keep your API keys secure and rotate them periodically
+- The .gitignore file is set up to exclude sensitive files, but be cautious when making changes
+- Ensure your database files are adequately backed up and secured
+- Consider implementing rate limiting to protect your API usage
 
 ## Usage
 

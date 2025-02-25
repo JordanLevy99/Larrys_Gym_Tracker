@@ -90,8 +90,13 @@ Do not include any explanation or additional text."""
         return recommended_topic
 
 class LarrysNewsRecommender:
-    def __init__(self, database, openai_client):
-        self.client = NewsApiClient(api_key=os.getenv('NEWS_API_KEY'))
+    def __init__(self, database, openai_client, config=None):
+        # Get API key from config object if provided, otherwise fall back to environment variable
+        news_api_key = config.api_keys.news if config and hasattr(config.api_keys, 'news') else os.getenv('NEWS_API_KEY')
+        if not news_api_key:
+            raise ValueError("No News API key provided in config or environment variables")
+        
+        self.client = NewsApiClient(api_key=news_api_key)
         self.recommender_engine = NewsRecommenderEngine(database, openai_client)
 
     def get_news(self, topic=None, page_size=5, country='us', max_retries=5) -> Tuple[str, List[dict]]:

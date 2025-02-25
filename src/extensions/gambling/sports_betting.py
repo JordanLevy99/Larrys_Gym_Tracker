@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 # Get a free API key at https://api.the-odds-api.com/
 load_dotenv()
 
-API_KEY = os.getenv('ODDS_API_KEY')
+# API key should be passed in from config or environment variables
+API_KEY = None  # Will be set when initializing the module
 
 SPORT = 'upcoming' # use the sport_key from the /sports endpoint below, or use 'upcoming' to see the next 8 games across all sports
 

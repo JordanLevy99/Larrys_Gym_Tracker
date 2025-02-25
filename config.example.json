@@ -20,7 +20,13 @@
     "api_keys": {
         "openai": "YOUR_OPENAI_API_KEY",
         "perplexity": "YOUR_PERPLEXITY_API_KEY",
-        "finnhub": "YOUR_FINNHUB_API_KEY"
+        "finnhub": "YOUR_FINNHUB_API_KEY",
+        "news": "YOUR_NEWS_API_KEY",
+        "odds": "YOUR_ODDS_API_KEY",
+        "dropbox_key": "YOUR_DROPBOX_KEY",
+        "dropbox_secret": "YOUR_DROPBOX_SECRET",
+        "dropbox_refresh_token": "YOUR_DROPBOX_REFRESH_TOKEN",
+        "gemini": "YOUR_GEMINI_API_KEY"
     },
     "birthday_songs": {
         "example_user": {
@@ -38,5 +44,11 @@
                 "start_second": 0
             }
         ]
+    },
+    "users": {
+        "example_user": {
+            "display_name": "Example User",
+            "birthdate": "01-01"
+        }
     }
-} 
+}

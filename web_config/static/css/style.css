@@ -1,0 +1,81 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1200px;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: #f1f3f5;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+}
+
+.nav-tabs .nav-link.active {
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.form-text {
+    font-size: 0.8rem;
+}
+
+.text-danger {
+    font-weight: bold;
+}
+
+.badge {
+    font-size: 0.7rem;
+    margin-left: 5px;
+}
+
+.user-entry, .birthday-song-entry, .winner-song-entry {
+    transition: all 0.3s ease;
+}
+
+.user-entry:hover, .birthday-song-entry:hover, .winner-song-entry:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 100, 0.15);
+}
+
+.extension-warning {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* For Discord guide page */
+.card h2 {
+    font-size: 1.5rem;
+}
+
+.card img {
+    border-radius: 4px;
+}
+
+.alert {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: none;
+    }
+}

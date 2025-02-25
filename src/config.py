@@ -107,13 +107,16 @@ class Config:
         
         self.birthday_songs: Dict[str, BirthdaySong] = {
             username: BirthdaySong.from_dict(data)
-            for username, data in config_data['birthday_songs'].items()
+            for username, data in config_data.get('birthday_songs', {}).items()
         }
         
         self.winner_songs: Dict[str, List[WinnerSong]] = {
             username: [WinnerSong.from_dict(song_data) for song_data in songs]
-            for username, songs in config_data['winner_songs'].items()
+            for username, songs in config_data.get('winner_songs', {}).items()
         }
+        
+        # Store enabled extensions
+        self.enabled_extensions = config_data.get('enabled_extensions', [])
 
     @property
     def birthday_tuples(self) -> Dict[tuple, tuple]:

@@ -28,6 +28,13 @@
         "dropbox_refresh_token": "YOUR_DROPBOX_REFRESH_TOKEN",
         "gemini": "YOUR_GEMINI_API_KEY"
     },
+    "enabled_extensions": [
+        "stock_trading",
+        "youtube_music",
+        "news_recommender",
+        "sleep_tracker",
+        "year_in_review"
+    ],
     "birthday_songs": {
         "example_user": {
             "month": 1,

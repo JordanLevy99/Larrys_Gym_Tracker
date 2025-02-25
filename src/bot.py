@@ -102,11 +102,30 @@ class LarrysBot:
         await self.discord_client.add_cog(ProfileCommands(self))
         await self.discord_client.add_cog(OpenAICog(self))
         await self.discord_client.add_cog(ExerciseCog(self))
-        await self.discord_client.add_cog(StockUserCommands(self))
-        await self.discord_client.add_cog(StockCommands(self))
         await self.discord_client.add_cog(DebugCommands(self))
-        await self.discord_client.add_cog(YoutubeMusicPlayer(self))
-        await self.discord_client.add_cog(LarrysNewsCogs(self))
-        await self.discord_client.add_cog(SleepTracker(self))
-        await self.discord_client.add_cog(YearInReview(self))
-        # await self.discord_client.add_cog(RealtimeCog(self))
+        
+        # Load optional extensions based on config
+        enabled_extensions = getattr(self.config, 'enabled_extensions', [])
+        
+        if 'stock_trading' in enabled_extensions:
+            await self.discord_client.add_cog(StockUserCommands(self))
+            await self.discord_client.add_cog(StockCommands(self))
+            
+        if 'youtube_music' in enabled_extensions:
+            await self.discord_client.add_cog(YoutubeMusicPlayer(self))
+            
+        if 'news_recommender' in enabled_extensions:
+            await self.discord_client.add_cog(LarrysNewsCogs(self))
+            
+        if 'sleep_tracker' in enabled_extensions:
+            await self.discord_client.add_cog(SleepTracker(self))
+            
+        if 'year_in_review' in enabled_extensions:
+            await self.discord_client.add_cog(YearInReview(self))
+            
+        if 'realtime_transcription' in enabled_extensions:
+            try:
+                from src.extensions.realtime.realtime_cog import RealtimeCog
+                await self.discord_client.add_cog(RealtimeCog(self))
+            except ImportError:
+                print("Warning: RealtimeCog could not be imported")

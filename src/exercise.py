@@ -201,7 +201,7 @@ class ExerciseCog(commands.Cog):
 
         try:
             # Start transaction
-            self.bot.database.connection.begin()
+            # self.bot.database.connection.begin()
             
             # Get exercise and points
             daily_exercise = self.bot.database.cursor.execute(

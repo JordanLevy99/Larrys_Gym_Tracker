@@ -87,19 +87,14 @@ class ExerciseCog(commands.Cog):
     @tasks.loop(hours=24)
     async def exercise_of_the_day(self):
         voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
-        if voice_channel and len(voice_channel.members) == 0:
-            full_response, tldr_response = self.__get_exercise('text')
-        else:
-            full_response, tldr_response = self.__get_exercise()
+        # Temporarily disable text-to-speech by forcing text-only mode
+        full_response, tldr_response = self.__get_exercise('text')
 
         # TODO: make a utility function to connect to the voice channel
 
         if voice_channel and len(voice_channel.members) >= 1:
             text_channel, voice_client = await self.__get_voice_client_and_text_channel(voice_channel)
             await text_channel.send(full_response)
-            await play_audio(voice_client, str(self.remote_speech_file_path), self.bot.backend_client,
-                             duration=get_mp3_duration(self.local_speech_file_path),
-                             start_second=0, download=False)
             await text_channel.send('\n\n' + tldr_response)
         else:
             await self.__send_responses_to_text_channel(full_response, tldr_response)

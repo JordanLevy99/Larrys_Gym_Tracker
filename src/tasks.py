@@ -21,6 +21,18 @@ class LarrysTasks(commands.Cog):
 
     def __init__(self, bot: 'LarrysBot'):
         self.bot = bot
+        self.tz = pytz.timezone('US/Pacific')
+
+    def _seconds_until_next_run(self, minute: int, hour_offset: int = 0, second: int = 0) -> float:
+        """Calculate seconds until the next run based on the configured start time."""
+        now = datetime.datetime.now(self.tz)
+        start_hour_today = self.bot.walk_constants.get_start_hour(now) + hour_offset
+        target = now.replace(hour=start_hour_today, minute=minute, second=second, microsecond=0)
+        if now >= target:
+            next_day = now + timedelta(days=1)
+            start_hour_next = self.bot.walk_constants.get_start_hour(next_day) + hour_offset
+            target = next_day.replace(hour=start_hour_next, minute=minute, second=second, microsecond=0)
+        return (target - now).total_seconds()
 
     @tasks.loop(hours=24)
     async def determine_monthly_winner(self):
@@ -64,6 +76,10 @@ class LarrysTasks(commands.Cog):
                 await play_audio(voice_client, str(remote_speech_file_path), self.bot.backend_client, get_mp3_duration(local_speech_file_path), 0, False)
                 await play_audio(voice_client, f'data/songs/first_of_the_month.mp3', self.bot.backend_client, 21, 41, True)
 
+        # schedule next run for the monthly winner task
+        next_interval = self._seconds_until_next_run(self.bot.walk_constants.WINNER_MINUTE - 2, second=50)
+        self.determine_monthly_winner.change_interval(seconds=next_interval)
+
     @tasks.loop(hours=24)
     async def determine_daily_winner(self):
         voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
@@ -106,34 +122,26 @@ class LarrysTasks(commands.Cog):
         else:
             print('not enough people in the vc')
 
+        # schedule next run based on current configuration
+        next_interval = self._seconds_until_next_run(self.bot.walk_constants.WINNER_MINUTE)
+        self.determine_daily_winner.change_interval(seconds=next_interval)
+
     @determine_daily_winner.before_loop
     async def before_determine_daily_winner(self):
         await self.bot.discord_client.wait_until_ready()
-        now = datetime.datetime.now()
-        now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now,
-                                                hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=self.bot.walk_constants.WINNER_MINUTE,
-                                                second=0,
-                                                microsecond=0)
-        if now > target_time:
-            target_time += timedelta(days=1)
-        print('Waiting until', target_time)
-        print(f'wait time: {(target_time - now).total_seconds()}')
-        await asyncio.sleep((target_time - now).total_seconds())
+        wait_seconds = self._seconds_until_next_run(self.bot.walk_constants.WINNER_MINUTE)
+        next_time = datetime.datetime.now(self.tz) + timedelta(seconds=wait_seconds)
+        print('Waiting until', next_time)
+        print(f'wait time: {wait_seconds}')
+        await asyncio.sleep(wait_seconds)
 
     @determine_monthly_winner.before_loop
     async def before_determine_monthly_winner(self):
-        now = datetime.datetime.now()
-        now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=self.bot.walk_constants.WINNER_MINUTE - 2, second=50,
-                                                microsecond=0)
-        if now > target_time:
-            target_time += timedelta(days=1)
-        print('Monthly winner determined at', target_time)
-        print(f'wait time for monthly winner check: {(target_time - now).total_seconds()}')
-        await asyncio.sleep((target_time - now).total_seconds())
+        wait_seconds = self._seconds_until_next_run(self.bot.walk_constants.WINNER_MINUTE - 2, second=50)
+        next_time = datetime.datetime.now(self.tz) + timedelta(seconds=wait_seconds)
+        print('Monthly winner determined at', next_time)
+        print(f'wait time for monthly winner check: {wait_seconds}')
+        await asyncio.sleep(wait_seconds)
 
     @tasks.loop(hours=24)  # Adjust the interval as needed
     async def check_freethrow_logs(self):

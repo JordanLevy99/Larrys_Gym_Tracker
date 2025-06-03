@@ -12,6 +12,17 @@ class YearInReview(commands.Cog):
         self.openai = bot.openai_client
         self.db = bot.database
         self.stock_db = bot.stock_exchange_database
+        self.tz = pytz.timezone('US/Pacific')
+
+    def _seconds_until_next_run(self, minute: int, hour_offset: int = 0, second: int = 0) -> float:
+        now = datetime.datetime.now(self.tz)
+        start_hour_today = self.bot.walk_constants.get_start_hour(now) + hour_offset
+        target = now.replace(hour=start_hour_today, minute=minute, second=second, microsecond=0)
+        if now >= target:
+            next_day = now + datetime.timedelta(days=1)
+            start_hour_next = self.bot.walk_constants.get_start_hour(next_day) + hour_offset
+            target = next_day.replace(hour=start_hour_next, minute=minute, second=second, microsecond=0)
+        return (target - now).total_seconds()
 
     @tasks.loop(hours=24)
     async def check_year_end(self):
@@ -23,6 +34,9 @@ class YearInReview(commands.Cog):
             await self.send_year_in_review()
         else:
             print(f"Not yet time for year end review. Waiting for 11/30 (current: {now.month}/{now.day})")
+
+        next_interval = self._seconds_until_next_run(0, hour_offset=1)
+        self.check_year_end.change_interval(seconds=next_interval)
 
     async def send_year_in_review(self):
         """Send year in review to all walkers"""
@@ -116,18 +130,11 @@ class YearInReview(commands.Cog):
     @check_year_end.before_loop
     async def before_check_year_end(self):
         await self.bot.discord_client.wait_until_ready()
-        now = datetime.datetime.now()
-        now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now,
-                                                hour=self.bot.walk_constants.WINNER_HOUR+1,
-                                                minute=0,
-                                                second=0,
-                                                microsecond=0)
-        if now > target_time:
-            target_time += datetime.timedelta(days=1)
-        print('Waiting to check for year end until', target_time)
-        print(f'wait time: {(target_time - now).total_seconds()}')
-        await asyncio.sleep((target_time - now).total_seconds())
+        wait_seconds = self._seconds_until_next_run(0, hour_offset=1)
+        next_time = datetime.datetime.now(self.tz) + datetime.timedelta(seconds=wait_seconds)
+        print('Waiting to check for year end until', next_time)
+        print(f'wait time: {wait_seconds}')
+        await asyncio.sleep(wait_seconds)
 
     def _get_walk_stats(self, user_id: int, year: int) -> Dict:
         """Get walking statistics for the year"""

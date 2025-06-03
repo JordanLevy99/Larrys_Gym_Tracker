@@ -1,7 +1,14 @@
 import pandas as pd
 from discord.ext import commands
 
-from src.util import download, _get_current_time, log_data, upload, append_to_database
+from src.util import (
+    download,
+    _get_current_time,
+    log_data,
+    upload,
+    append_to_database,
+    append_mute_event,
+)
 
 
 class LarrysEvents(commands.Cog):
@@ -25,10 +32,9 @@ class LarrysEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        # TODO: implement mute checker/logging
-        # if member.voice is not None and member.voice.self_mute:
-        #     print(f'{member.name} is muted')
-        #     return
+        if before.self_mute != after.self_mute:
+            await self.__log_mute_event(member, before, after)
+
         print(f'here are the bot constants again: {self.bot.bot_constants.__dict__}')
         current_time, pacific_time = _get_current_time()
         
@@ -67,6 +73,15 @@ class LarrysEvents(commands.Cog):
         current_time, _ = _get_current_time()
         append_to_database(self.bot.database, member, event, current_time, joined)
         self.log_and_upload(member, current_time, joined)
+
+    async def __log_mute_event(self, member, before, after):
+        current_time, _ = _get_current_time()
+        channel = after.channel or before.channel
+        channel_name = channel.name if channel else "Unknown"
+        muted = after.self_mute
+        append_mute_event(self.bot.database, member, current_time, channel_name, muted)
+        status = "muted" if muted else "unmuted"
+        print(f"{member.name} {status} in {channel_name} at {current_time}")
 
     async def __check_to_start_new_walk(self, member, pacific_time, walk_hour_condition):
         points = pd.read_sql('SELECT day FROM points ORDER BY day DESC LIMIT 1', self.bot.database.connection)

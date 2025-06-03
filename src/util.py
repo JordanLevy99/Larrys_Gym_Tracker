@@ -103,6 +103,14 @@ def append_to_database(database, member, event, event_time, joined):
     database.connection.commit()
 
 
+def append_mute_event(database, member, event_time, channel_name, muted):
+    database.cursor.execute(
+        "INSERT INTO mute_log VALUES (?, ?, ?, ?, ?)",
+        (member.name, member.id, event_time, channel_name, muted)
+    )
+    database.connection.commit()
+
+
 def _get_current_time() -> Tuple[str, datetime]:
     utc_now = datetime.now(pytz.utc)
 

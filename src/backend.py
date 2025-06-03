@@ -90,6 +90,8 @@ class LarrysDatabase(Database):
         super().__init__(db_file)
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS voice_log
                         (name text, id text, time datetime, channel text, user_joined boolean)''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS mute_log
+                        (name text, id text, time datetime, channel text, muted boolean)''')
 
         # Create table if it doesn't exist
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS points

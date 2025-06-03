@@ -54,10 +54,11 @@ class Portfolio:
 
     def _update_stock_prices(self):
         for stock in self.stocks:
-            user_id, symbol, price = stock[0], stock[1], stock[-1]
-            # stock[-1] is price
-            stock[-1] = self.stock_api.get_current_price(symbol)
-            self.db.update_stock_price(user_id, symbol, price)
+            user_id, symbol, old_price = stock[0], stock[1], stock[-1]
+            # Update the price in place and persist it to the DB
+            new_price = self.stock_api.get_current_price(symbol)
+            stock[-1] = new_price
+            self.db.update_stock_price(user_id, symbol, new_price)
         self.db.connection.commit()
 
 

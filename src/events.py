@@ -15,9 +15,16 @@ class LarrysEvents(commands.Cog):
         self.bot.discord_client.cogs['LarrysTasks'].determine_daily_winner.start()
         self.bot.discord_client.cogs['LarrysTasks'].determine_monthly_winner.start()
         self.bot.discord_client.cogs['LarrysTasks'].check_freethrow_logs.start()
-        self.bot.discord_client.cogs['ExerciseCog'].exercise_of_the_day.start()
-        self.bot.discord_client.cogs['LarrysNewsCogs'].get_daily_news.start()
-        self.bot.discord_client.cogs['YearInReview'].check_year_end.start()
+        if 'exercise_of_the_day' in getattr(self.bot.config, 'enabled_extensions', []):
+            self.bot.discord_client.cogs['ExerciseCog'].exercise_of_the_day.start()
+
+        if 'news_recommender' in getattr(self.bot.config, 'enabled_extensions', []):
+            if 'LarrysNewsCogs' in self.bot.discord_client.cogs:
+                self.bot.discord_client.cogs['LarrysNewsCogs'].get_daily_news.start()
+
+        if 'year_in_review' in getattr(self.bot.config, 'enabled_extensions', []):
+            if 'YearInReview' in self.bot.discord_client.cogs:
+                self.bot.discord_client.cogs['YearInReview'].check_year_end.start()
         download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         download(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         print(pd.read_sql_query("SELECT * FROM voice_log", self.bot.database.connection).tail())

@@ -127,6 +127,15 @@
                                     <span class="badge bg-primary">Requires: News API, OpenAI API</span>
                                 </label>
                             </div>
+
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="enabled_extensions" value="exercise_of_the_day" id="ext_exercise_of_the_day"
+                                    {% if config.enabled_extensions and 'exercise_of_the_day' in config.enabled_extensions %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_exercise_of_the_day">
+                                    <strong>Exercise of the Day</strong> - Daily exercise challenge announcements
+                                    <span class="badge bg-primary">Requires: OpenAI API</span>
+                                </label>
+                            </div>
                             
                             <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" name="enabled_extensions" value="realtime_transcription" id="ext_realtime"

@@ -167,7 +167,7 @@ class LarrysTasks(commands.Cog):
                     return
 
             number_made = int(number_made)
-            number_attempted = int(number_attempted) if number_attempted else 25  # Default to 10 if not provided
+            number_attempted = int(number_attempted) if number_attempted else 25  # Default to 25 if not provided
 
             # Check if the freethrow has already been logged
             if self.bot.database.freethrow_exists(

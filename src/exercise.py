@@ -83,6 +83,17 @@ class ExerciseCog(commands.Cog):
         self.exercise_map = {}
         self.remote_speech_file_path = Path('data') / "exercise_of_the_day.mp3"
         self.local_speech_file_path = ROOT_PATH / self.remote_speech_file_path
+        self.tz = pytz.timezone('US/Pacific')
+
+    def _seconds_until_next_run(self, minute: int, hour_offset: int = 0, second: int = 0) -> float:
+        now = datetime.datetime.now(self.tz)
+        start_hour_today = self.bot.walk_constants.get_start_hour(now) + hour_offset
+        target = now.replace(hour=start_hour_today, minute=minute, second=second, microsecond=0)
+        if now >= target:
+            next_day = now + datetime.timedelta(days=1)
+            start_hour_next = self.bot.walk_constants.get_start_hour(next_day) + hour_offset
+            target = next_day.replace(hour=start_hour_next, minute=minute, second=second, microsecond=0)
+        return (target - now).total_seconds()
 
     @tasks.loop(hours=24)
     async def exercise_of_the_day(self):
@@ -112,6 +123,10 @@ class ExerciseCog(commands.Cog):
                                           self.exercise_map['points'], full_response, tldr_response))
         self.bot.database.connection.commit()
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
+
+        # schedule next run based on current configuration
+        next_interval = self._seconds_until_next_run(44, second=50)
+        self.exercise_of_the_day.change_interval(seconds=next_interval)
 
     async def __get_voice_client_and_text_channel(self, voice_channel):
         try:
@@ -173,16 +188,11 @@ class ExerciseCog(commands.Cog):
     @exercise_of_the_day.before_loop
     async def before_exercise_of_the_day(self):
         await self.bot.discord_client.wait_until_ready()
-        now = datetime.datetime.now()
-        now = now.astimezone(pytz.timezone('US/Pacific'))
-        target_time = datetime.datetime.replace(now, hour=self.bot.walk_constants.WINNER_HOUR,
-                                                minute=44, second=50,
-                                                microsecond=0)
-        if now > target_time:
-            target_time += datetime.timedelta(days=1)
-        print('for exercise of the day, we wait until', target_time)
-        print(f'exercise of the day wait time: {(target_time - now).total_seconds()}')
-        await asyncio.sleep((target_time - now).total_seconds())
+        wait_seconds = self._seconds_until_next_run(44, second=50)
+        next_time = datetime.datetime.now(self.tz) + datetime.timedelta(seconds=wait_seconds)
+        print('for exercise of the day, we wait until', next_time)
+        print(f'exercise of the day wait time: {wait_seconds}')
+        await asyncio.sleep(wait_seconds)
 
     @commands.command()
     async def log_exercise(self, ctx):

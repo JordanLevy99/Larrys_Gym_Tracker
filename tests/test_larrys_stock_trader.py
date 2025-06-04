@@ -8,9 +8,12 @@ from src.extensions.stock_trading.larrys_stock_trader import StockCommands
 
 class LarrysStockTraderTests(unittest.TestCase):
 
+    @classmethod
     def setUpClass(cls):
-        cls.bot = MagicMock(LarrysBot())
-        # cls.stock_commands = StockCommands(cls.bot)
+        # Use a plain MagicMock to avoid initialising LarrysBot with external
+        # dependencies during tests.
+        cls.bot = MagicMock()
+        cls.bot.stock_api = MagicMock()
 
     def test_get_price(self):
         self.bot.stock_api.get_current_price = MagicMock(return_value=100)
@@ -42,7 +45,8 @@ class LarrysStockExchangeTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.bot = MagicMock(LarrysBot())
+        cls.bot = MagicMock()
+        cls.bot.stock_api = MagicMock()
         cls.stock_exchange = LarrysStockExchange('test.db')
         cls.stock_exchange.cursor = MagicMock()
         cls.stock_exchange.cursor.execute.return_value = None

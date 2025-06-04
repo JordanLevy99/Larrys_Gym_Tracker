@@ -41,6 +41,10 @@ class WalkArgs:
         now = datetime.datetime.now(pytz.timezone('US/Pacific'))
         return self.WEEKEND_START_HOUR+2 if now.weekday() >= 5 else self.START_HOUR+2
 
+    def get_start_hour(self, dt: datetime.datetime) -> int:
+        """Return the configured start hour for the provided datetime."""
+        return self.WEEKEND_START_HOUR if dt.weekday() >= 5 else self.START_HOUR
+
 @dataclass
 class Songs:
     BIRTHDAY: Dict[Tuple, Tuple] = field(default_factory=lambda: {

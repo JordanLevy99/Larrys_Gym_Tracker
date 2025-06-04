@@ -325,3 +325,29 @@ class LarrysStockExchange(Database):
         """Get all user IDs currently in the database"""
         self.cursor.execute("SELECT id FROM User")
         return {str(row[0]) for row in self.cursor.fetchall()}
+
+    # --- Convenience helpers used by tests ---
+    def get_user_portfolio(self, user_id):
+        """Return basic portfolio info for the given user.
+
+        This is a lightweight helper primarily used in tests. It returns an
+        object with ``owner`` set to the user record tuple
+        ``(name, id, net_worth, current_balance)``.
+        """
+        self.cursor.execute(
+            "SELECT name, id, net_worth, current_balance FROM User WHERE id = ?",
+            (user_id,)
+        )
+        owner = self.cursor.fetchone()
+        class PortfolioInfo:
+            def __init__(self, owner):
+                self.owner = owner
+        return PortfolioInfo(owner)
+
+    def get_user_net_worth(self, user_id, stock_api=None):
+        """Return the stored net worth for ``user_id``.
+
+        ``stock_api`` is accepted for future expansion but ignored here.
+        """
+        info = self.get_user_portfolio(user_id)
+        return info.owner[2] if info.owner else 0

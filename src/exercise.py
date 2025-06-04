@@ -54,7 +54,7 @@ class ExerciseCog(commands.Cog):
         "competitive, concise manner with some flair. Give a brief explanation on how to do the exercise at the end.")
 
     FORMATTED_RESPONSE_SYSTEM_MESSAGE = ('Given a difficulty ranging from easy to extreme '
-                                         '(with medium and hard inbetween), points awarded, '
+                                         '(with medium and hard in between), points awarded, '
                                          'and recent previous exercises from that difficulty,'
                                          ' you will create a unique exercise '
                                          'that can be completed in one\'s home/apartment in 5-20 minutes '

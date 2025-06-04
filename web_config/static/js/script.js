@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dependencies = {
             'sports_betting': ['api_odds'],
             'news_recommender': ['api_news', 'api_openai'],
+            'exercise_of_the_day': ['api_openai'],
             'realtime_transcription': ['api_openai'],
             'stock_trading': ['api_finnhub'],
             'year_in_review': ['api_openai']

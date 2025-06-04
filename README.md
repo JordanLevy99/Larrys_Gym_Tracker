@@ -103,6 +103,7 @@ The bot has a modular design with optional extensions:
 - **Stock Trading** - Simulated stock market trading (requires Finnhub API)
 - **YouTube Music Player** - Play music in voice channels (requires FFmpeg)
 - **News Recommender** - AI-powered news article recommendations (requires News API)
+- **Exercise of the Day** - Daily exercise challenge announcements (requires OpenAI API)
 - **Sleep Tracker** - Track user sleep patterns and award points
 - **Year in Review** - Generate year-end activity summaries
 - **Voice Transcription** - Real-time voice chat transcription (requires OpenAI)

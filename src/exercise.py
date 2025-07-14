@@ -97,18 +97,18 @@ class ExerciseCog(commands.Cog):
 
     @tasks.loop(hours=24)
     async def exercise_of_the_day(self):
-        voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
-        # Temporarily disable text-to-speech by forcing text-only mode
+        # Generate exercise content
         full_response, tldr_response = self.__get_exercise('text')
-
-        # TODO: make a utility function to connect to the voice channel
-
-        if voice_channel and len(voice_channel.members) >= 1:
-            text_channel, voice_client = await self.__get_voice_client_and_text_channel(voice_channel)
-            await text_channel.send(full_response)
-            await text_channel.send('\n\n' + tldr_response)
-        else:
-            await self.__send_responses_to_text_channel(full_response, tldr_response)
+        
+        # Send to users who have exercise enabled
+        enabled_users = self.bot.database.get_all_users_with_preference('exercise_enabled', True)
+        for user_id in enabled_users:
+            try:
+                user = await self.bot.discord_client.fetch_user(int(user_id))
+                await user.send(full_response)
+                await user.send('\n\n' + tldr_response)
+            except Exception as e:
+                print(f"Failed to send exercise to user {user_id}: {e}")
 
         response_parser = ExerciseOfTheDayResponseParser(tldr_response)
         self.exercise_map = response_parser.parse()
@@ -147,6 +147,16 @@ class ExerciseCog(commands.Cog):
     @commands.command()
     async def exercise(self, ctx, *args):
         args = ' '.join(args)
+        
+        # Check if user wants to toggle exercise notifications
+        if 'toggle' in args or not args:
+            user_id = str(ctx.author.id)
+            new_value = self.bot.database.toggle_user_preference(user_id, 'exercise_enabled')
+            status = "enabled" if new_value else "disabled"
+            await ctx.send(f"Exercise notifications have been {status}. You will {'now receive' if new_value else 'no longer receive'} daily exercise updates via DM.")
+            return
+        
+        # Generate and send exercise
         full_response, tldr_response = self.__get_exercise(args)
         if 'send' in args:
             await ctx.send(full_response)
@@ -202,24 +212,58 @@ class ExerciseCog(commands.Cog):
 
         current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
         current_date = current_time.date()
-        current_time = current_time.strftime("%Y-%m-%d %H:%M:%S.%f")
-        daily_exercise = self.bot.database.cursor.execute(f"SELECT exercise FROM exercise_of_the_day "
-                                                          f"WHERE date = "
-                                                          f"'{current_date}'").fetchone()[0]
-        exercise_points = self.bot.database.cursor.execute(f"SELECT points FROM exercise_of_the_day "
-                                                           f"WHERE date = "
-                                                           f"'{current_date}'").fetchone()[0]
-        self.bot.database.cursor.execute(f"INSERT INTO exercise_log (name, id, exercise, time)"
-                                         f" VALUES (?, ?, ?, ?)", (ctx.author.name, ctx.author.id,
-                                                                   daily_exercise, current_time))
+        current_time_str = current_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+
         try:
+            # Start transaction
+            # self.bot.database.connection.begin()
+            
+            # Get exercise and points
+            daily_exercise = self.bot.database.cursor.execute(
+                "SELECT exercise FROM exercise_of_the_day WHERE date = ?",
+                (current_date,)
+            ).fetchone()
+            
+            if not daily_exercise:
+                raise ValueError("No exercise found for today")
+                
+            daily_exercise = daily_exercise[0]
+            
+            exercise_points = self.bot.database.cursor.execute(
+                "SELECT points FROM exercise_of_the_day WHERE date = ?",
+                (current_date,)
+            ).fetchone()
+            
+            if not exercise_points:
+                raise ValueError("No points found for today's exercise")
+                
+            exercise_points = exercise_points[0]
+
+            # Log exercise
+            self.bot.database.cursor.execute(
+                "INSERT INTO exercise_log (name, id, exercise, time) VALUES (?, ?, ?, ?)",
+                (ctx.author.name, ctx.author.id, daily_exercise, current_time_str)
+            )
+            
+            # Update points
             self.__update_points(ctx, current_date, exercise_points)
+            
+            # Update stock balance
             self.__update_stock_balance(ctx, exercise_points)
-            await ctx.send(f'{ctx.author.name} has logged their exercise for today: '
-                           f'**{daily_exercise}** at **{current_time}** for **{int(exercise_points)}** points!')
+            
+            # Commit all changes
+            self.bot.database.connection.commit()
+            
+            await ctx.send(
+                f'{ctx.author.name} has logged their exercise for today: '
+                f'**{daily_exercise}** at **{current_time_str}** for **{int(exercise_points)}** points!'
+            )
             upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
-        except ValueError as e:
-            print(e)
+            
+        except Exception as e:
+            # Rollback on any error
+            self.bot.database.connection.rollback()
+            print(f"Error in log_exercise: {str(e)}")
             await ctx.send('There was an error logging your exercise. Contact @dinkster for help.')
 
     def __update_points(self, ctx, current_date, exercise_points):
@@ -230,23 +274,20 @@ class ExerciseCog(commands.Cog):
         self.bot.database.connection.commit()
 
     def __update_stock_balance(self, ctx, exercise_points):
-        try:
-            current_balance = self.bot.stock_exchange_database.get_user_balance(ctx.author.id)
-            current_balance += int(exercise_points)
-            self.bot.stock_exchange_database.update_user_balance(ctx.author.id, current_balance)
-            self.bot.stock_exchange_database.connection.commit()
-        except Exception as e:
-            print(e)
-        return
+        current_balance = self.bot.stock_exchange_database.get_user_balance(ctx.author.id)
+        current_balance += int(exercise_points)
+        self.bot.stock_exchange_database.update_user_balance(ctx.author.id, current_balance)
+        # Note: We don't commit here as it's part of the main transaction
 
     def __exercise_is_already_logged(self, ctx):
         current_time = datetime.datetime.now(tz=pytz.timezone('US/Pacific'))
         current_date = current_time.date()
-        return self.bot.database.cursor.execute(f"SELECT  name, id, exercise, date FROM "
-                                                f"(SELECT name, id, exercise, DATE(time) as date "
-                                                f"FROM exercise_log)"
-                                                f"WHERE date = "
-                                                f"'{current_date}' AND id = {ctx.author.id}").fetchone()
+        return self.bot.database.cursor.execute(
+            """SELECT name, id, exercise, date FROM 
+               (SELECT name, id, exercise, DATE(time) as date FROM exercise_log)
+               WHERE date = ? AND id = ?""",
+            (current_date, ctx.author.id)
+        ).fetchone()
 
     @commands.command()
     async def log_freethrows(self, ctx, *args):

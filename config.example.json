@@ -1,0 +1,66 @@
+{
+    "discord": {
+        "token": "YOUR_DISCORD_BOT_TOKEN",
+        "guild_id": "YOUR_GUILD_ID",
+        "channels": {
+            "text": {
+                "name": "larrys-gym-logger",
+                "id": "YOUR_TEXT_CHANNEL_ID"
+            },
+            "voice": {
+                "name": "Larry's Gym",
+                "id": "YOUR_VOICE_CHANNEL_ID"
+            }
+        }
+    },
+    "database": {
+        "main_db": "larrys_database.db",
+        "stock_db": "larrys_stock_exchange.db"
+    },
+    "api_keys": {
+        "openai": "YOUR_OPENAI_API_KEY",
+        "perplexity": "YOUR_PERPLEXITY_API_KEY",
+        "finnhub": "YOUR_FINNHUB_API_KEY",
+        "news": "YOUR_NEWS_API_KEY",
+        "odds": "YOUR_ODDS_API_KEY",
+        "dropbox_key": "YOUR_DROPBOX_KEY",
+        "dropbox_secret": "YOUR_DROPBOX_SECRET",
+        "dropbox_refresh_token": "YOUR_DROPBOX_REFRESH_TOKEN",
+        "gemini": "YOUR_GEMINI_API_KEY"
+    },
+    "enabled_extensions": [
+        "stock_trading",
+        "youtube_music",
+        "news_recommender",
+        "sleep_tracker",
+        "year_in_review"
+    ],
+    "birthday_songs": {
+        "example_user": {
+            "month": 1,
+            "day": 1,
+            "song_link": "https://www.youtube.com/watch?v=example",
+            "song_file": "happy_birthday_example.mp3"
+        }
+    },
+    "winner_songs": {
+        "example_user": [
+            {
+                "file": "example_song.mp3",
+                "duration": 15,
+                "start_second": 0
+            }
+        ]
+    },
+    "users": {
+        "example_user": {
+            "display_name": "Example User",
+            "birthdate": "01-01"
+        }
+    },
+    "user_preferences": {
+        "show_join_message": true,
+        "default_exercise_enabled": false,
+        "default_news_enabled": false
+    }
+}

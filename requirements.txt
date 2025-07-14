@@ -1,6 +1,5 @@
-git+https://github.com/Rapptz/discord.py.git
-git+https://github.com/JordanLevy99/discord-ext-voice-recv.git
 discord.py[voice]>=2.4.0
+git+https://github.com/JordanLevy99/discord-ext-voice-recv.git
 python-dotenv
 pandas
 pydrive
@@ -18,3 +17,5 @@ pydub
 webrtcvad
 websockets
 numpy
+Flask>=2.0.0
+Werkzeug>=2.0.0

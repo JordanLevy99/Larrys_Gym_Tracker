@@ -15,9 +15,16 @@ class LarrysEvents(commands.Cog):
         self.bot.discord_client.cogs['LarrysTasks'].determine_daily_winner.start()
         self.bot.discord_client.cogs['LarrysTasks'].determine_monthly_winner.start()
         self.bot.discord_client.cogs['LarrysTasks'].check_freethrow_logs.start()
+        
+        # Only start optional tasks if they are enabled in config
+        if 'news_recommender' in self.bot.config.enabled_extensions:
+            self.bot.discord_client.cogs['LarrysNewsCogs'].get_daily_news.start()
+        
+        # Exercise is always available but only sends to opted-in users
         self.bot.discord_client.cogs['ExerciseCog'].exercise_of_the_day.start()
-        self.bot.discord_client.cogs['LarrysNewsCogs'].get_daily_news.start()
-        self.bot.discord_client.cogs['YearInReview'].check_year_end.start()
+        
+        if 'year_in_review' in self.bot.config.enabled_extensions:
+            self.bot.discord_client.cogs['YearInReview'].check_year_end.start()
         download(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         download(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
         print(pd.read_sql_query("SELECT * FROM voice_log", self.bot.database.connection).tail())
@@ -46,14 +53,16 @@ class LarrysEvents(commands.Cog):
         if walk_hour_condition:
             if self.__voice_channel_status_changed(after):
                 await self.__log_voice_channel_event(after, member, joined=True)
-                await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym within the proper time frame.")
+                if self.bot.config.user_preferences.get('show_join_message', True):
+                    await member.send(f"Welcome to The Walk™. You joined Larry\'s Gym within the proper time frame.")
             if self.__voice_channel_status_changed(before):
                 await self.__log_voice_channel_event(before, member, joined=False)
         elif self.__voice_channel_status_changed(after):
-            day_type = "weekend" if is_weekend else "weekday"
-            await member.send(
-                f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between "
-                f"{start_hour}:00 and {end_hour}:00 Pacific time on {day_type}s.")
+            if self.bot.config.user_preferences.get('show_join_message', True):
+                day_type = "weekend" if is_weekend else "weekday"
+                await member.send(
+                    f"Sorry buckaroo, you joined Larry\'s Gym at {current_time}. The Walk™ is only between "
+                    f"{start_hour}:00 and {end_hour}:00 Pacific time on {day_type}s.")
 
     def log_and_upload(self, member, event_time, joining):
         if self.bot.args.verbose:

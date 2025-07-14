@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Larry's Gym Tracker Configuration</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Larry's Gym Tracker Configuration</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Configuration Editor</h3>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('save') }}" method="post">
+                    <ul class="nav nav-tabs" id="configTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="discord-tab" data-bs-toggle="tab" data-bs-target="#discord" type="button">Discord</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="extensions-tab" data-bs-toggle="tab" data-bs-target="#extensions" type="button">Extensions</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="api-keys-tab" data-bs-toggle="tab" data-bs-target="#api-keys" type="button">API Keys</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">Users</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="birthday-songs-tab" data-bs-toggle="tab" data-bs-target="#birthday-songs" type="button">Birthday Songs</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="winner-songs-tab" data-bs-toggle="tab" data-bs-target="#winner-songs" type="button">Winner Songs</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="database-tab" data-bs-toggle="tab" data-bs-target="#database" type="button">Database</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content p-3 border border-top-0 rounded-bottom" id="configTabContent">
+                        <!-- Discord Settings -->
+                        <div class="tab-pane fade show active" id="discord" role="tabpanel">
+                            <h4>Discord Settings</h4>
+                            <div class="mb-3">
+                                <label for="discord_token" class="form-label">Bot Token <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="discord_token" name="discord_token" 
+                                    value="{{ config.discord.token if config.discord and config.discord.token else '' }}" required>
+                                <div class="form-text">
+                                    <a href="{{ url_for('generate_discord_guide') }}" target="_blank">Learn how to create a Discord bot and get a token</a>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="discord_guild_id" class="form-label">Guild (Server) ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="discord_guild_id" name="discord_guild_id" 
+                                    value="{{ config.discord.guild_id if config.discord else '' }}" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Text Channel</h5>
+                                    <div class="mb-3">
+                                        <label for="discord_text_channel_name" class="form-label">Name</label>
+                                        <input type="text" class="form-control" id="discord_text_channel_name" name="discord_text_channel_name" 
+                                            value="{{ config.discord.channels.text.name if config.discord and config.discord.channels and config.discord.channels.text else 'larrys-gym-logger' }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="discord_text_channel_id" class="form-label">ID <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="discord_text_channel_id" name="discord_text_channel_id" 
+                                            value="{{ config.discord.channels.text.id if config.discord and config.discord.channels and config.discord.channels.text else '' }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Voice Channel</h5>
+                                    <div class="mb-3">
+                                        <label for="discord_voice_channel_name" class="form-label">Name</label>
+                                        <input type="text" class="form-control" id="discord_voice_channel_name" name="discord_voice_channel_name" 
+                                            value="{{ config.discord.channels.voice.name if config.discord and config.discord.channels and config.discord.channels.voice else 'Larry\'s Gym' }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="discord_voice_channel_id" class="form-label">ID <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="discord_voice_channel_id" name="discord_voice_channel_id" 
+                                            value="{{ config.discord.channels.voice.id if config.discord and config.discord.channels and config.discord.channels.voice else '' }}" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Extensions -->
+                        <div class="tab-pane fade" id="extensions" role="tabpanel">
+                            <h4>Extensions</h4>
+                            <p class="text-muted">Enable or disable bot extensions based on your needs.</p>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="enabled_extensions" value="sports_betting" id="ext_sports_betting"
+                                    {% if config.enabled_extensions and 'sports_betting' in config.enabled_extensions %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_sports_betting">
+                                    <strong>Sports Betting</strong> - Allows users to get sports betting odds information
+                                    <span class="badge bg-primary">Requires: Odds API</span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="enabled_extensions" value="youtube_music" id="ext_youtube_music"
+                                    {% if config.enabled_extensions and 'youtube_music' in config.enabled_extensions %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_youtube_music">
+                                    <strong>YouTube Music Player</strong> - Play music from YouTube in voice channels
+                                    <span class="badge bg-info">Requires: FFmpeg</span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="enabled_extensions" value="news_recommender" id="ext_news_recommender"
+                                    {% if config.enabled_extensions and 'news_recommender' in config.enabled_extensions %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_news_recommender">
+                                    <strong>News Recommender</strong> - AI-powered news article recommendations
+                                    <span class="badge bg-primary">Requires: News API, OpenAI API</span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="enabled_extensions" value="realtime_transcription" id="ext_realtime"
+                                    {% if config.enabled_extensions and 'realtime_transcription' in config.enabled_extensions %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_realtime">
+                                    <strong>Voice Transcription</strong> - Real-time voice chat transcription
+                                    <span class="badge bg-primary">Requires: OpenAI API</span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="enabled_extensions" value="sleep_tracker" id="ext_sleep_tracker"
+                                    {% if config.enabled_extensions and 'sleep_tracker' in config.enabled_extensions %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_sleep_tracker">
+                                    <strong>Sleep Tracker</strong> - Track user sleep patterns and award points
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="enabled_extensions" value="stock_trading" id="ext_stock_trading"
+                                    {% if config.enabled_extensions and 'stock_trading' in config.enabled_extensions %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_stock_trading">
+                                    <strong>Stock Trading Simulation</strong> - Simulated stock market trading
+                                    <span class="badge bg-primary">Requires: Finnhub API</span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="enabled_extensions" value="year_in_review" id="ext_year_in_review"
+                                    {% if config.enabled_extensions and 'year_in_review' in config.enabled_extensions %}checked{% endif %}>
+                                <label class="form-check-label" for="ext_year_in_review">
+                                    <strong>Year in Review</strong> - Generate year-end activity summaries
+                                    <span class="badge bg-primary">Requires: OpenAI API</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- API Keys -->
+                        <div class="tab-pane fade" id="api-keys" role="tabpanel">
+                            <h4>API Keys</h4>
+                            <p class="text-muted">Configure API keys for various bot features.</p>
+                            
+                            <div class="mb-3">
+                                <label for="api_openai" class="form-label">OpenAI API Key <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="api_openai" name="api_openai" 
+                                    value="{{ config.api_keys.openai if config.api_keys else '' }}" required>
+                                <div class="form-text">
+                                    <a href="https://platform.openai.com/api-keys" target="_blank">Get an OpenAI API key</a>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="api_perplexity" class="form-label">Perplexity API Key <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="api_perplexity" name="api_perplexity" 
+                                    value="{{ config.api_keys.perplexity if config.api_keys else '' }}" required>
+                                <div class="form-text">
+                                    <a href="https://docs.perplexity.ai/guides/getting-started" target="_blank">Get a Perplexity API key</a>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="api_finnhub" class="form-label">Finnhub API Key</label>
+                                <input type="password" class="form-control" id="api_finnhub" name="api_finnhub" 
+                                    value="{{ config.api_keys.finnhub if config.api_keys else '' }}">
+                                <div class="form-text">
+                                    <a href="https://finnhub.io/" target="_blank">Get a Finnhub API key</a> - Required for stock trading features
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="api_news" class="form-label">News API Key</label>
+                                <input type="password" class="form-control" id="api_news" name="api_news" 
+                                    value="{{ config.api_keys.news if config.api_keys else '' }}">
+                                <div class="form-text">
+                                    <a href="https://newsapi.org/" target="_blank">Get a News API key</a> - Required for news recommendation features
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="api_odds" class="form-label">Odds API Key</label>
+                                <input type="password" class="form-control" id="api_odds" name="api_odds" 
+                                    value="{{ config.api_keys.odds if config.api_keys else '' }}">
+                                <div class="form-text">
+                                    <a href="https://the-odds-api.com/" target="_blank">Get an Odds API key</a> - Required for sports betting features
+                                </div>
+                            </div>
+                            
+                            <h5 class="mt-4">Dropbox Backup (Optional)</h5>
+                            <div class="mb-3">
+                                <label for="api_dropbox_key" class="form-label">Dropbox App Key</label>
+                                <input type="password" class="form-control" id="api_dropbox_key" name="api_dropbox_key" 
+                                    value="{{ config.api_keys.dropbox_key if config.api_keys else '' }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="api_dropbox_secret" class="form-label">Dropbox App Secret</label>
+                                <input type="password" class="form-control" id="api_dropbox_secret" name="api_dropbox_secret" 
+                                    value="{{ config.api_keys.dropbox_secret if config.api_keys else '' }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="api_dropbox_refresh_token" class="form-label">Dropbox Refresh Token</label>
+                                <input type="password" class="form-control" id="api_dropbox_refresh_token" name="api_dropbox_refresh_token" 
+                                    value="{{ config.api_keys.dropbox_refresh_token if config.api_keys else '' }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="api_gemini" class="form-label">Google Gemini API Key (Optional)</label>
+                                <input type="password" class="form-control" id="api_gemini" name="api_gemini" 
+                                    value="{{ config.api_keys.gemini if config.api_keys else '' }}">
+                                <div class="form-text">
+                                    <a href="https://ai.google.dev/" target="_blank">Get a Google Gemini API key</a> - Optional alternative AI provider
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Users -->
+                        <div class="tab-pane fade" id="users" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4>Users</h4>
+                                <button type="button" class="btn btn-primary btn-sm" id="addUserBtn">Add User</button>
+                            </div>
+                            
+                            <div id="userContainer">
+                                {% if config.users %}
+                                    {% for user_id, user_data in config.users.items() %}
+                                        <div class="card mb-3 user-entry">
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-5">
+                                                        <div class="mb-2">
+                                                            <label class="form-label">User ID <span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="user_id" value="{{ user_id }}" required>
+                                                            <div class="form-text">Discord username or unique identifier</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-5">
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="user_name" value="{{ user_data.display_name }}" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Birthdate</label>
+                                                            <input type="text" class="form-control" name="user_birthdate" value="{{ user_data.birthdate }}" placeholder="MM-DD">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-danger btn-sm remove-entry">Remove</button>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="card mb-3 user-entry">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-5">
+                                                    <div class="mb-2">
+                                                        <label class="form-label">User ID <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" name="user_id" required>
+                                                        <div class="form-text">Discord username or unique identifier</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <div class="mb-2">
+                                                        <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" name="user_name" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <div class="mb-2">
+                                                        <label class="form-label">Birthdate</label>
+                                                        <input type="text" class="form-control" name="user_birthdate" placeholder="MM-DD">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-danger btn-sm remove-entry">Remove</button>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <template id="userTemplate">
+                                <div class="card mb-3 user-entry">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-5">
+                                                <div class="mb-2">
+                                                    <label class="form-label">User ID <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" name="user_id" required>
+                                                    <div class="form-text">Discord username or unique identifier</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" name="user_name" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Birthdate</label>
+                                                    <input type="text" class="form-control" name="user_birthdate" placeholder="MM-DD">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-danger btn-sm remove-entry">Remove</button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Birthday Songs -->
+                        <div class="tab-pane fade" id="birthday-songs" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4>Birthday Songs</h4>
+                                <button type="button" class="btn btn-primary btn-sm" id="addBirthdaySongBtn">Add Birthday Song</button>
+                            </div>
+                            
+                            <div id="birthdaySongContainer">
+                                {% if config.birthday_songs %}
+                                    {% for user_id, song_data in config.birthday_songs.items() %}
+                                        <div class="card mb-3 birthday-song-entry">
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-md-4">
+                                                        <div class="mb-2">
+                                                            <label class="form-label">User ID <span class="text-danger">*</span></label>
+                                                            <input type="text" class="form-control" name="birthday_user_id" value="{{ user_id }}" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Month <span class="text-danger">*</span></label>
+                                                            <input type="number" class="form-control" name="birthday_month" min="1" max="12" value="{{ song_data.month }}" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Day <span class="text-danger">*</span></label>
+                                                            <input type="number" class="form-control" name="birthday_day" min="1" max="31" value="{{ song_data.day }}" required>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Song Link</label>
+                                                            <input type="text" class="form-control" name="birthday_song_link" value="{{ song_data.song_link }}">
+                                                            <div class="form-text">YouTube URL</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="mb-2">
+                                                            <label class="form-label">Song File</label>
+                                                            <input type="text" class="form-control" name="birthday_song_file" value="{{ song_data.song_file }}">
+                                                            <div class="form-text">Path to local MP3 file in data/songs/</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn btn-danger btn-sm remove-entry">Remove</button>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            
+                            <template id="birthdaySongTemplate">
+                                <div class="card mb-3 birthday-song-entry">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mb-2">
+                                                    <label class="form-label">User ID <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" name="birthday_user_id" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Month <span class="text-danger">*</span></label>
+                                                    <input type="number" class="form-control" name="birthday_month" min="1" max="12" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Day <span class="text-danger">*</span></label>
+                                                    <input type="number" class="form-control" name="birthday_day" min="1" max="31" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Song Link</label>
+                                                    <input type="text" class="form-control" name="birthday_song_link">
+                                                    <div class="form-text">YouTube URL</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Song File</label>
+                                                    <input type="text" class="form-control" name="birthday_song_file">
+                                                    <div class="form-text">Path to local MP3 file in data/songs/</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-danger btn-sm remove-entry">Remove</button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Winner Songs -->
+                        <div class="tab-pane fade" id="winner-songs" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4>Winner Songs</h4>
+                                <button type="button" class="btn btn-primary btn-sm" id="addWinnerSongBtn">Add Winner Song</button>
+                            </div>
+                            
+                            <div id="winnerSongContainer">
+                                {% if config.winner_songs %}
+                                    {% for user_id, songs in config.winner_songs.items() %}
+                                        {% for song in songs %}
+                                            <div class="card mb-3 winner-song-entry">
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-2">
+                                                                <label class="form-label">User ID <span class="text-danger">*</span></label>
+                                                                <input type="text" class="form-control" name="winner_user_id" value="{{ user_id }}" required>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-2">
+                                                                <label class="form-label">Song File <span class="text-danger">*</span></label>
+                                                                <input type="text" class="form-control" name="winner_song_file" value="{{ song.file }}" required>
+                                                                <div class="form-text">Path to local MP3 file in data/songs/</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-2">
+                                                                <label class="form-label">Duration (seconds)</label>
+                                                                <input type="number" class="form-control" name="winner_duration" value="{{ song.duration }}" min="1">
+                                                                <div class="form-text">How long to play the song</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-2">
+                                                                <label class="form-label">Start Second</label>
+                                                                <input type="number" class="form-control" name="winner_start_second" value="{{ song.start_second }}" min="0">
+                                                                <div class="form-text">Start playing from this point in the song</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-danger btn-sm remove-entry">Remove</button>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            
+                            <template id="winnerSongTemplate">
+                                <div class="card mb-3 winner-song-entry">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">User ID <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" name="winner_user_id" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Song File <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" name="winner_song_file" required>
+                                                    <div class="form-text">Path to local MP3 file in data/songs/</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Duration (seconds)</label>
+                                                    <input type="number" class="form-control" name="winner_duration" value="15" min="1">
+                                                    <div class="form-text">How long to play the song</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <label class="form-label">Start Second</label>
+                                                    <input type="number" class="form-control" name="winner_start_second" value="0" min="0">
+                                                    <div class="form-text">Start playing from this point in the song</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="btn btn-danger btn-sm remove-entry">Remove</button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Database Settings -->
+                        <div class="tab-pane fade" id="database" role="tabpanel">
+                            <h4>Database Settings</h4>
+                            <div class="mb-3">
+                                <label for="main_db" class="form-label">Main Database Filename</label>
+                                <input type="text" class="form-control" id="main_db" name="main_db" 
+                                    value="{{ config.database.main_db if config.database else 'larrys_database.db' }}">
+                                <div class="form-text">Default: larrys_database.db</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="stock_db" class="form-label">Stock Exchange Database Filename</label>
+                                <input type="text" class="form-control" id="stock_db" name="stock_db" 
+                                    value="{{ config.database.stock_db if config.database else 'larrys_stock_exchange.db' }}">
+                                <div class="form-text">Default: larrys_stock_exchange.db</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Save Configuration</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

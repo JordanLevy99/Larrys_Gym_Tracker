@@ -57,5 +57,10 @@
             "display_name": "Example User",
             "birthdate": "01-01"
         }
+    },
+    "user_preferences": {
+        "show_join_message": true,
+        "default_exercise_enabled": false,
+        "default_news_enabled": false
     }
 }

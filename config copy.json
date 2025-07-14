@@ -1,0 +1,224 @@
+{
+    "discord": {
+        "token": "MTE5MTE0NTg5MDkyNTI2MDgxMA.GSpMId.LYCnOTgNP4BJYqAm7gkYOkI7orMEjSKkng7sy8",
+        "guild_id": "621938294422241301",
+        "channels": {
+            "text": {
+                "name": "larrys-gym-logger",
+                "id": "1193971930794045544"
+            },
+            "voice": {
+                "name": "Larry's Gym",
+                "id": "1234680075962683482"
+            }
+        }
+    },
+    "database": {
+        "main_db": "larrys_database.db",
+        "stock_db": "larrys_stock_exchange.db"
+    },
+    "api_keys": {
+        "openai": "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",
+        "perplexity": "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",
+        "finnhub": "coljephr01qkduimn4n0coljephr01qkduimn4ng"
+    },
+    "birthday_songs": {
+        "james": {
+            "month": 1,
+            "day": 19,
+            "song_link": "https://www.youtube.com/watch?v=jcZRsApNZwk",
+            "song_file": "happy_birthday_james.mp3"
+        },
+        "jordan": {
+            "month": 9,
+            "day": 27,
+            "song_link": "https://www.youtube.com/watch?v=E8Jx5jOXM9Y",
+            "song_file": "happy_birthday_jordan.mp3"
+        },
+        "kyle": {
+            "month": 4,
+            "day": 5,
+            "song_link": "https://www.youtube.com/watch?v=bujfHuKO-Vc",
+            "song_file": "happy_birthday_kyle.mp3"
+        },
+        "ben": {
+            "month": 1,
+            "day": 22,
+            "song_link": "https://www.youtube.com/watch?v=t5r1qIY0g2g",
+            "song_file": "happy_birthday_ben.mp3"
+        },
+        "peter": {
+            "month": 4,
+            "day": 12,
+            "song_link": "https://www.youtube.com/watch?v=SsoIMucoHa4",
+            "song_file": "happy_birthday_peter.mp3"
+        },
+        "mikal": {
+            "month": 1,
+            "day": 27,
+            "song_link": "https://www.youtube.com/watch?v=Hz8-5D2dmus",
+            "song_file": "happy_birthday_mikal.mp3"
+        }
+    },
+    "winner_songs": {
+        "jam4bears": [
+            {
+                "file": "rocky_balboa.mp3",
+                "duration": 15,
+                "start_second": 0
+            },
+            {
+                "file": "walk_it_talk_it.mp3",
+                "duration": 45,
+                "start_second": 40
+            }
+        ],
+        "bemno": [
+            {
+                "file": "wanna_be_free.mp3",
+                "duration": 40,
+                "start_second": 0
+            },
+            {
+                "file": "war_fanfare.mp3",
+                "duration": 15,
+                "start_second": 95
+            },
+            {
+                "file": "gimmick_good_weather.mp3",
+                "duration": 15,
+                "start_second": 0
+            },
+            {
+                "file": "gimmick_good_morning.mp3",
+                "duration": 15,
+                "start_second": 0
+            }
+        ],
+        "dinkstar": [
+            {
+                "file": "chug_jug_with_you.mp3",
+                "duration": 32,
+                "start_second": 1
+            },
+            {
+                "file": "jesus_forgive_me_i_am_a_thot.mp3",
+                "duration": 23,
+                "start_second": 122
+            },
+            {
+                "file": "thot_tactics.mp3",
+                "duration": 22,
+                "start_second": 109
+            },
+            {
+                "file": "jump_out_the_house.mp3",
+                "duration": 12,
+                "start_second": 7
+            }
+        ],
+        "Larry's Gym Bot": [
+            {
+                "file": "larrys_song.mp3",
+                "duration": 26,
+                "start_second": 0
+            }
+        ],
+        "kyboydigital": [
+            {
+                "file": "shenanigans.mp3",
+                "duration": 15,
+                "start_second": 13
+            }
+        ],
+        "shmeg.": [
+            {
+                "file": "chum_drum_bedrum.mp3",
+                "duration": 67,
+                "start_second": 26
+            },
+            {
+                "file": "whats_new_scooby_doo.mp3",
+                "duration": 64,
+                "start_second": 0
+            },
+            {
+                "file": "tnt_dynamite.mp3",
+                "duration": 64,
+                "start_second": 18
+            },
+            {
+                "file": "HEYYEYAAEYAAAEYAEYAA.mp3",
+                "duration": 84,
+                "start_second": 0
+            },
+            {
+                "file": "hyrule_field.mp3",
+                "duration": 50,
+                "start_second": 175
+            },
+            {
+                "file": "tunak_tunak.mp3",
+                "duration": 76,
+                "start_second": 26
+            },
+            {
+                "file": "vinland_saga.mp3",
+                "duration": 75,
+                "start_second": 14
+            },
+            {
+                "file": "german_soldiers_song.mp3",
+                "duration": 37,
+                "start_second": 0
+            },
+            {
+                "file": "BED_INTRUDER_SONG.mp3",
+                "duration": 76,
+                "start_second": 0
+            },
+            {
+                "file": "Medal_Of_Honor_European_Assault.mp3",
+                "duration": 75,
+                "start_second": 77
+            },
+            {
+                "file": "Klendathu_Drop.mp3",
+                "duration": 80,
+                "start_second": 0
+            },
+            {
+                "file": "The_Black_Pearl.mp3",
+                "duration": 64,
+                "start_second": 30
+            },
+            {
+                "file": "Rohan_and_Gondor_Themes.mp3",
+                "duration": 62,
+                "start_second": 222
+            },
+            {
+                "file": "The_Ecstasy_of_Gold.mp3",
+                "duration": 107,
+                "start_second": 0
+            },
+            {
+                "file": "Fergie_sings_the_national_anthem.mp3",
+                "duration": 62,
+                "start_second": 77
+            }
+        ],
+        "shamupete": [
+            {
+                "file": "Bloopin.mp3",
+                "duration": 81,
+                "start_second": 0
+            },
+            {
+                "file": "chocolate_rain.mp3",
+                "duration": 60,
+                "start_second": 0
+            }
+        ]
+    }
+} 

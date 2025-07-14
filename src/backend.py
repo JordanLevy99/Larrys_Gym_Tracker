@@ -118,6 +118,9 @@ class LarrysDatabase(Database):
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS sleep_points
                         (date datetime, user_id text, name text, points_type text, points integer)''')
 
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS user_preferences
+                        (user_id text PRIMARY KEY, exercise_enabled boolean DEFAULT 0, news_enabled boolean DEFAULT 0)''')
+
     def add_daily_news(self, message_id, title, url, category, news_json, date):
         self.cursor.execute("INSERT INTO daily_news (message_id, title, url, category, news_json, date) VALUES (?, ?, ?, ?, ?, ?)",
                             (message_id, title, url, category, news_json, date))
@@ -170,6 +173,29 @@ class LarrysDatabase(Database):
         """, (user_id, date))
         count = self.cursor.fetchone()[0]
         return count > 0
+
+    def get_user_preference(self, user_id, preference_name):
+        """Get a specific user preference (exercise_enabled or news_enabled)"""
+        self.cursor.execute(f"SELECT {preference_name} FROM user_preferences WHERE user_id = ?", (user_id,))
+        result = self.cursor.fetchone()
+        return bool(result[0]) if result else False
+
+    def set_user_preference(self, user_id, preference_name, value):
+        """Set a specific user preference"""
+        self.cursor.execute(f"INSERT OR REPLACE INTO user_preferences (user_id, {preference_name}) VALUES (?, ?)", (user_id, int(value)))
+        self.connection.commit()
+
+    def get_all_users_with_preference(self, preference_name, value=True):
+        """Get all users who have a specific preference enabled"""
+        self.cursor.execute(f"SELECT user_id FROM user_preferences WHERE {preference_name} = ?", (int(value),))
+        return [row[0] for row in self.cursor.fetchall()]
+
+    def toggle_user_preference(self, user_id, preference_name):
+        """Toggle a user preference and return the new value"""
+        current_value = self.get_user_preference(user_id, preference_name)
+        new_value = not current_value
+        self.set_user_preference(user_id, preference_name, new_value)
+        return new_value
 
 
 class LarrysStockExchange(Database):

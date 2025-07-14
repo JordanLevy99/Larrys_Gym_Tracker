@@ -144,8 +144,14 @@ class LarrysNewsCogs(commands.Cog):
 
     @tasks.loop(hours=24)
     async def get_daily_news(self):
-        text_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.TEXT_CHANNEL_ID)
-        await self.__get_recommended_news(text_channel)
+        # Send to users who have news enabled
+        enabled_users = self.bot.database.get_all_users_with_preference('news_enabled', True)
+        for user_id in enabled_users:
+            try:
+                user = await self.bot.discord_client.fetch_user(int(user_id))
+                await self.__get_recommended_news_for_user(user)
+            except Exception as e:
+                print(f"Failed to send news to user {user_id}: {e}")
 
     @get_daily_news.before_loop
     async def before_get_daily_news(self):
@@ -176,6 +182,20 @@ class LarrysNewsCogs(commands.Cog):
             error_message = "Sorry, I couldn't find any valid news articles at the moment. Please try again later."
             await ctx.send(error_message)
             print(f"Error getting news: {str(e)}")
+    
+    async def __get_recommended_news_for_user(self, user):
+        """Get news for a specific user via DM"""
+        try:
+            news_message, articles = self.news_recommender.get_news(page_size=1)
+            message = await user.send(news_message)
+            await self.__add_reactions_to_message(message)
+            
+            for article in articles:
+                await self.__store_article(message, article, "ai_recommended")
+        except ValueError as e:
+            error_message = "Sorry, I couldn't find any valid news articles at the moment. Please try again later."
+            await user.send(error_message)
+            print(f"Error getting news for user {user.id}: {str(e)}")
 
     async def __store_article(self, message, article, category):
         """Store article information in database"""
@@ -192,7 +212,18 @@ class LarrysNewsCogs(commands.Cog):
 
     @commands.command(name='news')
     async def news(self, ctx, *args):
-        """Get news for AI-recommended topic based on user engagement"""
+        """Toggle news notifications or get news for AI-recommended topic"""
+        args = ' '.join(args)
+        
+        # Check if user wants to toggle news notifications
+        if 'toggle' in args or not args:
+            user_id = str(ctx.author.id)
+            new_value = self.bot.database.toggle_user_preference(user_id, 'news_enabled')
+            status = "enabled" if new_value else "disabled"
+            await ctx.send(f"News notifications have been {status}. You will {'now receive' if new_value else 'no longer receive'} daily news updates via DM.")
+            return
+        
+        # Get news for specific topic or AI-recommended topic
         await self.__get_recommended_news(ctx)
 
     async def __default_get_news(self, ctx):

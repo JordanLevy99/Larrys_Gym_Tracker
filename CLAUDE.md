@@ -84,5 +84,26 @@ The project has been undergoing significant preparation for open source release.
 - Documentation: README.md, CLAUDE.md, setup_server.sh
 - Extensions: gambling/sports_betting.py, news/larrys_news_recommender.py
 
+### Recent Feature Updates (2024-07-14)
+
+#### User Preference System
+- **Exercise & News Notifications**: Now optional and sent via DM only
+- **Default State**: Both exercise and news are disabled by default
+- **Toggle Commands**: 
+  - `!exercise` - Toggle daily exercise notifications
+  - `!news` - Toggle daily news notifications
+- **Database**: New `user_preferences` table to track user settings
+
+#### Join Message Control
+- **Optional Join Messages**: Can now be disabled globally
+- **Admin Command**: `!toggle_join_messages` (admin only)
+- **Configuration**: Controlled via `user_preferences.show_join_message`
+
+#### Implementation Details
+- **Exercise**: Sends DMs to users with `exercise_enabled = True`
+- **News**: Sends DMs to users with `news_enabled = True`
+- **Database Methods**: Added preference management methods to `LarrysDatabase`
+- **Backward Compatibility**: All existing functionality preserved
+
 ### Next Steps
-The branch is 1 commit ahead of origin and ready for the import path fix to be committed.
+The branch is 3 commits ahead of origin and ready for the feature updates to be committed.

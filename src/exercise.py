@@ -86,23 +86,18 @@ class ExerciseCog(commands.Cog):
 
     @tasks.loop(hours=24)
     async def exercise_of_the_day(self):
-        voice_channel = self.bot.discord_client.get_channel(self.bot.bot_constants.VOICE_CHANNEL_ID)
-        if voice_channel and len(voice_channel.members) == 0:
-            full_response, tldr_response = self.__get_exercise('text')
-        else:
-            full_response, tldr_response = self.__get_exercise()
-
-        # TODO: make a utility function to connect to the voice channel
-
-        if voice_channel and len(voice_channel.members) >= 1:
-            text_channel, voice_client = await self.__get_voice_client_and_text_channel(voice_channel)
-            await text_channel.send(full_response)
-            await play_audio(voice_client, str(self.remote_speech_file_path), self.bot.backend_client,
-                             duration=get_mp3_duration(self.local_speech_file_path),
-                             start_second=0, download=False)
-            await text_channel.send('\n\n' + tldr_response)
-        else:
-            await self.__send_responses_to_text_channel(full_response, tldr_response)
+        # Generate exercise content
+        full_response, tldr_response = self.__get_exercise('text')
+        
+        # Send to users who have exercise enabled
+        enabled_users = self.bot.database.get_all_users_with_preference('exercise_enabled', True)
+        for user_id in enabled_users:
+            try:
+                user = await self.bot.discord_client.fetch_user(int(user_id))
+                await user.send(full_response)
+                await user.send('\n\n' + tldr_response)
+            except Exception as e:
+                print(f"Failed to send exercise to user {user_id}: {e}")
 
         response_parser = ExerciseOfTheDayResponseParser(tldr_response)
         self.exercise_map = response_parser.parse()
@@ -137,6 +132,16 @@ class ExerciseCog(commands.Cog):
     @commands.command()
     async def exercise(self, ctx, *args):
         args = ' '.join(args)
+        
+        # Check if user wants to toggle exercise notifications
+        if 'toggle' in args or not args:
+            user_id = str(ctx.author.id)
+            new_value = self.bot.database.toggle_user_preference(user_id, 'exercise_enabled')
+            status = "enabled" if new_value else "disabled"
+            await ctx.send(f"Exercise notifications have been {status}. You will {'now receive' if new_value else 'no longer receive'} daily exercise updates via DM.")
+            return
+        
+        # Generate and send exercise
         full_response, tldr_response = self.__get_exercise(args)
         if 'send' in args:
             await ctx.send(full_response)

@@ -117,6 +117,9 @@ class Config:
         
         # Store enabled extensions
         self.enabled_extensions = config_data.get('enabled_extensions', [])
+        
+        # Store user preferences
+        self.user_preferences = config_data.get('user_preferences', {})
 
     @property
     def birthday_tuples(self) -> Dict[tuple, tuple]:

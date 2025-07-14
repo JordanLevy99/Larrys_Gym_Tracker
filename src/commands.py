@@ -228,3 +228,21 @@ class LarrysCommands(commands.Cog):
         await self.leaderboard(ctx, 'on time today')
         upload(self.bot.backend_client, self.bot.bot_constants.DB_FILE)
         upload(self.bot.backend_client, self.bot.bot_constants.STOCK_DB_FILE)
+
+    @commands.command()
+    async def toggle_join_messages(self, ctx):
+        """Toggle whether join messages are sent to users"""
+        # For now, this is a global config setting that requires admin privileges
+        # In future, this could be per-user setting
+        if not ctx.author.guild_permissions.administrator:
+            await ctx.send("You need administrator permissions to toggle join messages.")
+            return
+            
+        current_value = self.bot.config.user_preferences.get('show_join_message', True)
+        new_value = not current_value
+        
+        # Update the config - this would need to be saved to file to persist
+        self.bot.config.user_preferences['show_join_message'] = new_value
+        
+        status = "enabled" if new_value else "disabled"
+        await ctx.send(f"Join messages have been {status}.")

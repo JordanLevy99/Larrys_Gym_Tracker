@@ -50,6 +50,15 @@ responses.json
 notebooks/
 dev/
 
+# Sensitive files
+env_file.txt
+*.plist
+larrys_gym_tracker.txt
+*.key
+*_key
+private_key
+mac_private_key
+
 # Logs and temp files
 *.log
 logs/

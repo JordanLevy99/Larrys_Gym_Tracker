@@ -1,14 +1,14 @@
-name: Deploy to EC2
+name: Deploy to Production
 
 on:
   push:
-    branches: [ main ]  # Adjust this to your main branch name
+    branches: [ main ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Deploy to EC2
       env:
@@ -16,12 +16,9 @@ jobs:
         HOST: ${{ secrets.EC2_HOST }}
         USER: ${{ secrets.EC2_USERNAME }}
       run: |
-        echo "User: ${USER}"
-        echo "Host: ${HOST}"
+        echo "Deploying to EC2..."
         echo "$PRIVATE_KEY" > private_key
         chmod 600 private_key
-        echo "Private key file contents:"
-        cat private_key
         ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
           cd /home/ec2-user/GitHub/Larrys_Gym_Tracker &&
           git remote set-url origin git@github.com:JordanLevy99/Larrys_Gym_Tracker.git &&
@@ -30,3 +27,27 @@ jobs:
           pip install -r requirements.txt &&
           sudo systemctl restart larrys_gym_tracker.service
         '
+
+    - name: Restart Mac Mini Service
+      env:
+        MAC_SSH_KEY: ${{ secrets.MAC_SSH_KEY }}
+        MAC_HOST: ${{ secrets.MAC_HOST }}
+        MAC_USER: ${{ secrets.MAC_USERNAME }}
+        MAC_PASSWORD: ${{ secrets.MAC_PASSWORD }}
+        LAUNCHCTL_SERVICE: ${{ secrets.LAUNCHCTL_SERVICE_NAME }}
+      run: |
+        echo "Restarting Mac Mini launchctl service..."
+        echo "$MAC_SSH_KEY" > mac_private_key
+        chmod 600 mac_private_key
+        ssh -o StrictHostKeyChecking=no -i mac_private_key ${MAC_USER}@${MAC_HOST} "
+          echo '${MAC_PASSWORD}' | sudo -S launchctl stop ${LAUNCHCTL_SERVICE} || true
+          echo '${MAC_PASSWORD}' | sudo -S launchctl start ${LAUNCHCTL_SERVICE}
+          launchctl list | grep ${LAUNCHCTL_SERVICE}
+        " || {
+          echo "SSH key authentication failed, trying password authentication..."
+          sshpass -p "${MAC_PASSWORD}" ssh -o StrictHostKeyChecking=no ${MAC_USER}@${MAC_HOST} "
+            echo '${MAC_PASSWORD}' | sudo -S launchctl stop ${LAUNCHCTL_SERVICE} || true
+            echo '${MAC_PASSWORD}' | sudo -S launchctl start ${LAUNCHCTL_SERVICE}
+            launchctl list | grep ${LAUNCHCTL_SERVICE}
+          "
+        }

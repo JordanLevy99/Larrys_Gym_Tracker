@@ -219,9 +219,11 @@ class LarrysCommands(commands.Cog):
 
         daily_voice_log_df = voice_log_df.loc[voice_log_df['day'] == current_day]
         users_durations = daily_voice_log_df.groupby(['id']).apply(lambda user: user['time'].max() - user['time'].min())
+        # Use get_start_hour() to get correct start time for weekdays (7am) and weekends (9am)
+        current_start_hour = self.bot.walk_constants.get_start_hour(datetime.now(pytz.timezone('US/Pacific')))
         calculate_points(self.bot.database, daily_voice_log_df, users_durations,
                          self.bot.walk_constants.LENGTH_OF_WALK_IN_MINUTES, self.bot.walk_constants.MAX_DURATION_POINTS,
-                         self.bot.walk_constants.START_HOUR, self.bot.stock_exchange_database)
+                         current_start_hour, self.bot.stock_exchange_database)
         print(pd.read_sql_query("""SELECT * FROM points""", self.bot.database.connection).tail())
         await self.leaderboard(ctx, '')
         await ctx.send('Getting Today\'s On Time Leaderboard')

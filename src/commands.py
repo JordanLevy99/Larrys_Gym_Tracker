@@ -98,23 +98,61 @@ class LarrysCommands(commands.Cog):
         self.__walkers = None
 
     @commands.command()
-    async def start_time(self, ctx, start_hour: int = None):
-        """Set the walk start time, defaulting to 7am on weekdays and 9am on weekends"""
-        now = datetime.now(pytz.timezone('US/Pacific'))
-        is_weekend = now.weekday() >= 5  # 5 is Saturday, 6 is Sunday
-        
+    async def start_time(self, ctx, start_hour: int = None, day_type: str = "weekday"):
+        """Set the walk start time for weekdays or weekends
+
+        Usage: !start_time <hour> [weekday|weekend]
+        Examples:
+            !start_time 8          - Sets weekday start time to 8am
+            !start_time 8 weekday  - Sets weekday start time to 8am
+            !start_time 9 weekend  - Sets weekend start time to 9am
+        """
+        # Validate day_type parameter
+        day_type = day_type.lower()
+        if day_type not in ["weekday", "weekend"]:
+            await ctx.send(f'Invalid day type "{day_type}". Please use "weekday" or "weekend".')
+            self.bot.logger.warning(f'User {ctx.author.name} attempted to set start_time with invalid day_type: {day_type}')
+            return
+
+        # If no hour provided, show current settings
         if start_hour is None:
-            start_hour = self.bot.walk_constants.WEEKEND_START_HOUR if is_weekend else self.bot.walk_constants.START_HOUR
-        
+            weekday_time = self.bot.walk_constants.START_HOUR
+            weekend_time = self.bot.walk_constants.WEEKEND_START_HOUR
+            await ctx.send(
+                f'Current walk start times:\n'
+                f'Weekday: {weekday_time}:00 PST\n'
+                f'Weekend: {weekend_time}:00 PST'
+            )
+            return
+
+        # Validate hour range
+        if start_hour < 0 or start_hour > 23:
+            await ctx.send(f'Invalid hour {start_hour}. Please provide an hour between 0 and 23.')
+            self.bot.logger.warning(f'User {ctx.author.name} attempted to set start_time with invalid hour: {start_hour}')
+            return
+
+        # Update the appropriate start hour based on day_type
+        is_weekend = day_type == "weekend"
+        old_hour = self.bot.walk_constants.WEEKEND_START_HOUR if is_weekend else self.bot.walk_constants.START_HOUR
+
         if is_weekend:
             self.bot.walk_constants.WEEKEND_START_HOUR = start_hour
         else:
             self.bot.walk_constants.START_HOUR = start_hour
-            
-        self.bot.walk_constants.END_HOUR = start_hour + 2
-        
-        day_type = "weekend" if is_weekend else "weekday"
-        await ctx.send(f'Walk start time set to {start_hour}:00 Pacific time for this {day_type}...')
+
+        # Log the change
+        self.bot.logger.info(
+            f'Walk start time updated by {ctx.author.name}: '
+            f'{day_type} start time changed from {old_hour}:00 to {start_hour}:00 PST'
+        )
+
+        # Send confirmation message to user
+        end_hour = start_hour + 2
+        await ctx.send(
+            f'Walk start time updated!\n'
+            f'**{day_type.capitalize()}** walks now start at **{start_hour}:00 PST** and end at **{end_hour}:00 PST**\n'
+            f'_(Changed from {old_hour}:00 PST)_'
+        )
 
     @commands.command()
     async def end_walk(self, ctx):

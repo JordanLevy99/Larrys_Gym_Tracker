@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from pathlib import Path
 
 import discord
@@ -28,7 +29,20 @@ class LarrysBot:
 
     def __init__(self):
         self.args = parse_args()
-        
+
+        # Setup logging
+        log_dir = ROOT_PATH / 'logs'
+        log_dir.mkdir(exist_ok=True)
+        logging.basicConfig(
+            level=logging.DEBUG if self.args.verbose else logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_dir / 'bot.log'),
+                logging.StreamHandler()
+            ]
+        )
+        self.logger = logging.getLogger('LarrysBot')
+
         # Load appropriate config based on mode
         config_path = Path('test_config.json') if self.args.test else Path('config.json')
         self.config = Config(config_path)
